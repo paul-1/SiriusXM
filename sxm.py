@@ -23,7 +23,7 @@ class SiriusXM:
 
     @staticmethod
     def log(x):
-        print('{} <SiriusXM>: {}'.format(datetime.datetime.now().strftime('%d.%b %Y %H:%M:%S'), x))
+        print('{} <SiriusXM>: {}'.format(datetime.datetime.now(datetime.UTC).strftime('%d.%b %Y %H:%M:%S'), x))
 
     def is_logged_in(self):
         return 'SXMDATA' in self.session.cookies
