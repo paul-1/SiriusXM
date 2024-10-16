@@ -159,7 +159,7 @@ class SiriusXM:
             'marker_mode': 'all_separate_cue_points',
             'result-template': 'web',
             'time': int(round(time.time() * 1000.0)),
-            'timestamp': datetime.datetime.utcnow().isoformat('T') + 'Z'
+            'timestamp': datetime.datetime.now(datetime.UTC).isoformat('T') + 'Z'
         }
         data = self.get('tune/now-playing-live', params)
         if not data:
