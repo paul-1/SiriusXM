@@ -20,395 +20,444 @@ You can see a list of the channels by setting the -l or --list flag:
 Then in a player that supports HLS (QuickTime, VLC, ffmpeg, etc) you can access a channel at http://127.0.0.1:8888/channel.m3u8 where "channel" is the channel name, ID, or Sirius channel number.
 
 Here's a list of some of the channel IDs:
-
-| Name                              | ID                  |
-|-----------------------------------|---------------------|
-| The Covers Channel                | 9416                |
-| Sports 958                        | 9427                |
-| Utah Jazz                         | 9294                |
-| Sports 975                        | 9212                |
-| VOLUME                            | 9442                |
-| HLN                               | cnnheadlinenews     |
-| Laugh USA                         | laughbreak          |
-| Washington Wizards                | 9295                |
-| Carlin's Corner                   | 9181                |
-| 70s on 7                          | totally70s          |
-| SXM NHL Network Radio             | 8185                |
-| Tom Petty Radio                   | 9407                |
-| Underground Garage                | undergroundgarage   |
-| SiriusXM Spotlight                | 9138                |
-| Radio Margaritaville              | radiomargaritaville |
-| Cincinnati Reds                   | 9237                |
-| Portland Trail Blazers            | 9290                |
-| SiriusXM FC                       | 9341                |
-| Miami Marlins                     | 9245                |
-| SiriusXM Insight                  | 8183                |
-| SiriusXM FLY                      | 9339                |
-| Red White & Booze                 | 9178                |
-| Kids Place Live                   | 8216                |
-| New York Islanders                | 9313                |
-| New York Rangers                  | 9314                |
-| SiriusXM NASCAR Radio             | siriusnascarradio   |
-| 1st Wave                          | firstwave           |
-| Los Angeles Rams                  | 9203                |
-| Houston Rockets                   | 9276                |
-| Washington Capitals               | 9324                |
-| Joel Osteen Radio                 | 9392                |
-| Attitude Franco                   | energie2            |
-| Classic Rewind                    | classicrewind       |
-| SiriusXM PGA TOUR Radio           | 8186                |
-| Miami Heat                        | 9281                |
-| 80s on 8                          | big80s              |
-| SiriusXM 375                      | 9459                |
-| Dallas Stars                      | 9304                |
-| Sports 977                        | 9214                |
-| Denver Broncos                    | 9155                |
-| Hip-Hop Nation                    | hiphopnation        |
-| Boston Red Sox                    | 9234                |
-| SXM Limited Edition 5             | 9399                |
-| SiriusXM Silk                     | 9364                |
-| Flow Nación                       | 9185                |
-| Miami Dolphins                    | 9162                |
-| Sports 983                        | 9327                |
-| Viva                              | 8225                |
-| Sports 985                        | 9329                |
-| Barstool Radio on SiriusXM        | 9467                |
-| San Francisco 49ers               | 9202                |
-| Sports 992                        | 9336                |
-| Arizona Diamondbacks              | 9231                |
-| ESPN Xtra                         | 8254                |
-| Utopia                            | 9365                |
-| RockBar                           | 9175                |
-| Road Dog Trucking                 | roaddogtrucking     |
-| Colorado Rockies                  | 9239                |
-| Colorado Avalanche                | 9303                |
-| Real Jazz                         | purejazz            |
-| Free Bird: LynyrdSkynyrd          | 9139                |
-| Sports 994                        | 9338                |
-| Bluegrass Junction                | bluegrass           |
-| Sports 986                        | 9330                |
-| CBC Radio One                     | cbcradioone         |
-| POTUS Politics                    | indietalk           |
-| The Groove                        | 8228                |
-| American Latino Radio             | 9133                |
-| Milwaukee Bucks                   | 9282                |
-| Comedy Central Radio              | 9356                |
-| Z100/NY                           | 8242                |
-| Philadelphia Flyers               | 9316                |
-| Chicago Bears                     | 9151                |
-| FOX Business                      | 9369                |
-| Washington Redskins               | 9206                |
-| Oklahoma City Thunder             | 9286                |
-| SXM Limited Edition 3             | 9353                |
-| SXM Rock Hall Radio               | 9174                |
-| Dallas Cowboys                    | 9154                |
-| Boston Celtics                    | 9268                |
-| Los Angeles Clippers              | 9278                |
-| Sports 980                        | 9261                |
-| Classic Vinyl                     | classicvinyl        |
-| Howard 101                        | howardstern101      |
-| TODAY Show Radio                  | 9390                |
-| Sway's Universe                   | 9397                |
-| ESPN Deportes                     | espndeportes        |
-| Houston Texans                    | 9158                |
-| MLB Network Radio                 | 8333                |
-| Sports 974                        | 9211                |
-| La Politica Talk                  | 9134                |
-| BB King's Bluesville              | siriusblues         |
-| 60s on 6                          | 60svibrations       |
-| Sports 991                        | 9335                |
-| C-SPAN Radio                      | 8237                |
-| Spa                               | spa73               |
-| St. Louis Blues                   | 9320                |
-| Kansas City Royals                | 9242                |
-| CBC Radio 3                       | cbcradio3           |
-| SiriusXM 372                      | 9456                |
-| The Garth Channel                 | 9421                |
-| Howard 100                        | howardstern100      |
-| FOX Sports on SiriusXM            | 9445                |
-| Sports 979                        | 9216                |
-| CBS Sports Radio                  | 9473                |
-| RURAL Radio                       | 9367                |
-| Sports 984                        | 9328                |
-| E Street Radio                    | estreetradio        |
-| Pop2K                             | 8208                |
-| Indiana Pacers                    | 9277                |
-| Korea Today                       | 9132                |
-| PRX Public Radio                  | 8239                |
-| Philadelphia Phillies             | 9251                |
-| Sports 963                        | 9223                |
-| Dallas Mavericks                  | 9272                |
-| Lithium                           | 90salternative      |
-| New Orleans Saints                | 9165                |
-| SiriusXM SEC Radio                | 9458                |
-| The Joint                         | reggaerhythms       |
-| Atlanta Braves                    | 9232                |
-| BPM                               | thebeat             |
-| Sports 981                        | 9262                |
-| Florida Panthers                  | 9307                |
-| Sports 969                        | 9229                |
-| Willie's Roadhouse                | theroadhouse        |
-| SiriusXMU                         | leftofcenter        |
-| Family Talk                       | 8307                |
-| 80s/90s Pop                       | 9373                |
-| FOX News Headlines 24/7           | 9410                |
-| Ozzy's Boneyard                   | buzzsaw             |
-| Mad Dog Sports Radio              | 8213                |
-| Diplo's Revolution Radio          | 9472                |
-| SiriusXM ACC Radio                | 9455                |
-| Minnesota Timberwolves            | 9283                |
-| ONEderland                        | 9419                |
-| SXM Limited Edition 9             | 9403                |
-| Orlando Magic                     | 9287                |
-| Sports 960                        | 9220                |
-| Indianapolis Colts                | 9159                |
-| San Antonio Spurs                 | 9291                |
-| Charlotte Hornets                 | 9269                |
-| SiriusXM Stars                    | siriusstars         |
-| Phoenix Suns                      | 9289                |
-| Canada Laughs                     | 8259                |
-| Venus                             | 9389                |
-| Sports 989                        | 9333                |
-| Minnesota Vikings                 | 9163                |
-| Krishna Das Yoga Radio            | 9179                |
-| Vancouver Canucks                 | 9323                |
-| En Vivo                           | 9135                |
-| Buffalo Sabres                    | 9298                |
-| Pittsburgh Pirates                | 9252                |
-| Sports 978                        | 9215                |
-| The Highway                       | newcountry          |
-| Kirk Franklin's Praise            | praise              |
-| Tampa Bay Buccaneers              | 9204                |
-| SiriusXM Rush                     | 8230                |
-| Hair Nation                       | hairnation          |
-| SiriusXM NFL Radio                | siriusnflradio      |
-| The Verge                         | 8244                |
-| Milwaukee Brewers                 | 9246                |
-| Vegas Stats & Info                | 9448                |
-| Petty's Buried Treasure           | 9352                |
-| The Loft                          | 8207                |
-| Sports 959                        | 9428                |
-| The Emo Project                   | 9447                |
-| Yacht Rock Radio                  | 9420                |
-| SiriusXM Pops                     | siriuspops          |
-| The Bridge                        | thebridge           |
-| SiriusXM Preview                  | 0                   |
-| SiriusXM Hits 1                   | siriushits1         |
-| 90s on 9                          | 8206                |
-| Cincinnati Bengals                | 9152                |
-| Raw Dog Comedy Hits               | rawdog              |
-| FOX News Talk                     | 9370                |
-| Cleveland Browns                  | 9153                |
-| Heart & Soul                      | heartandsoul        |
-| Faction Punk                      | faction             |
-| Toronto Raptors                   | 9293                |
-| SiriusXM Scoreboard               | 8248                |
-| Ici Première                      | premiereplus        |
-| Cleveland Indians                 | 9238                |
-| Chicago White Sox                 | 9236                |
-| Los Angeles Chargers              | 9171                |
-| New York Knicks                   | 9285                |
-| Carolina Hurricanes               | 9299                |
-| Montreal Canadiens                | 9310                |
-| St. Louis Cardinals               | 9256                |
-| Águila                            | 9186                |
-| Sports 988                        | 9332                |
-| The Beatles Channel               | 9446                |
-| New York Yankees                  | 9249                |
-| EW Radio                          | 9351                |
-| Sports 971                        | 9208                |
-| Canadian IPR                      | 9358                |
-| SiriusXM Comes Alive!             | 9176                |
-| 40s Junction                      | 8205                |
-| Arizona Cardinals                 | 9146                |
-| Sports 961                        | 9221                |
-| Elvis Radio                       | elvisradio          |
-| enLighten                         | 8229                |
-| Atlanta Hawks                     | 9266                |
-| Chicago Cubs                      | 9235                |
-| Seattle Mariners                  | 9255                |
-| Road Trip Radio                   | 9415                |
-| Symphony Hall                     | symphonyhall        |
-| SXM Limited Edition 11            | 9405                |
-| Latidos                           | 9187                |
-| SiriusXM Comedy Greats            | 9408                |
-| Sports 982                        | 9326                |
-| Sports 957                        | 9426                |
-| Detroit Lions                     | 9156                |
-| SiriusXM Chill                    | chill               |
-| SiriusXM Pac-12 Radio             | 9457                |
-| Chicago Blackhawks                | 9302                |
-| Cinemagic                         | 8211                |
-| SiriusXM Progress                 | siriusleft          |
-| Atlanta Falcons                   | 9147                |
-| Liquid Metal                      | hardattack          |
-| Radio Disney                      | radiodisney         |
-| The Blend                         | starlite            |
-| Verizon IndyCar Series            | 9207                |
-| Toronto Blue Jays                 | 9259                |
-| Octane                            | octane              |
-| Jam On                            | jamon               |
-| The Billy Graham Channel          | 9411                |
-| Calgary Flames                    | 9301                |
-| Triumph                           | 9449                |
-| Sports 966                        | 9226                |
-| Houston Astros                    | 9241                |
-| ESPNU Radio                       | siriussportsaction  |
-| Chicago Bulls                     | 9270                |
-| Pearl Jam Radio                   | 8370                |
-| Caricia                           | 9188                |
-| Brooklyn Nets                     | 9267                |
-| Sports 990                        | 9334                |
-| Denver Nuggets                    | 9273                |
-| El Paisa                          | 9414                |
-| New York Jets                     | 9167                |
-| Iceberg                           | icebergradio        |
-| 70s/80s Pop                       | 9372                |
-| The Message                       | spirit              |
-| Minnesota Wild                    | 9309                |
-| Nashville Predators               | 9312                |
-| Memphis Grizzlies                 | 9280                |
-| PopRocks                          | 9450                |
-| SXM Limited Edition 8             | 9402                |
-| Arizona Coyotes                   | 9394                |
-| La Kueva                          | 9191                |
-| SiriusXM NBA Radio                | 9385                |
-| Sports 967                        | 9227                |
-| BBC World Service                 | bbcworld            |
-| Sports 976                        | 9213                |
-| Rumbón                            | 9190                |
-| Ici Musique Chansons              | 8245                |
-| NPR Now                           | nprnow              |
-| KIDZ BOP Radio                    | 9366                |
-| Sports 973                        | 9210                |
-| SXM Limited Edition 4             | 9398                |
-| Velvet                            | 9361                |
-| Classic Rock Party                | 9375                |
-| Los Angeles Lakers                | 9279                |
-| Met Opera Radio                   | metropolitanopera   |
-| SXM Limited Edition 6             | 9400                |
-| Green Bay Packers                 | 9157                |
-| Sacramento Kings                  | 9292                |
-| Pittsburgh Steelers               | 9170                |
-| Sports 954                        | 9423                |
-| Carolina Shag Radio               | 9404                |
-| KIIS-Los Angeles                  | 8241                |
-| Deep Tracks                       | thevault            |
-| Business Radio                    | 9359                |
-| Philadelphia Eagles               | 9169                |
-| Buffalo Bills                     | 9149                |
-| The Spectrum                      | thespectrum         |
-| Grateful Dead                     | gratefuldead        |
-| Pitbull's Globalization           | 9406                |
-| CNN                               | cnn                 |
-| Oldies Party                      | 9378                |
-| Golden State Warriors             | 9275                |
-| CNBC                              | cnbc                |
-| Sports 965                        | 9225                |
-| The Catholic Channel              | thecatholicchannel  |
-| New England Patriots              | 9164                |
-| New Orleans Pelicans              | 9284                |
-| ESPN Radio                        | espnradio           |
-| Bloomberg Radio                   | bloombergradio      |
-| The Heat                          | hotjamz             |
-| Columbus Blue Jackets             | 9300                |
-| Sports 968                        | 9228                |
-| Oakland Raiders                   | 9168                |
-| Sports 972                        | 9209                |
-| Detroit Tigers                    | 9240                |
-| Pittsburgh Penguins               | 9318                |
-| HBCU                              | 9130                |
-| Los Angeles Kings                 | 9308                |
-| Ottawa Senators                   | 9315                |
-| MSNBC                             | 8367                |
-| Outlaw Country                    | outlawcountry       |
-| SXM Limited Edition 7             | 9401                |
-| Prime Country                     | primecountry        |
-| Jason Ellis                       | 9363                |
-| Alt Nation                        | altnation           |
-| No Shoes Radio                    | 9418                |
-| Radio Andy                        | 9409                |
-| Baltimore Ravens                  | 9148                |
-| San Jose Sharks                   | 9319                |
-| San Francisco Giants              | 9254                |
-| Siriusly Sinatra                  | siriuslysinatra     |
-| New York Giants                   | 9166                |
-| Doctor Radio                      | doctorradio         |
-| Sports 987                        | 9331                |
-| San Diego Padres                  | 9253                |
-| Texas Rangers                     | 9258                |
-| SiriusXM Turbo                    | 9413                |
-| Shade 45                          | shade45             |
-| North Americana                   | 9468                |
-| Kevin Hart's Laugh Out Loud Radio | 9469                |
-| Los Angeles Angels                | 9243                |
-| Sports 964                        | 9224                |
-| BYUradio                          | 9131                |
-| Ici FrancoCountry                 | rockvelours         |
-| Washington Nationals              | 9260                |
-| SportsCenter                      | 9180                |
-| Baltimore Orioles                 | 9233                |
-| EWTN Radio                        | ewtnglobal          |
-| Vivid Radio                       | 8369                |
-| The Village                       | 8227                |
-| Carolina Panthers                 | 9150                |
-| Escape                            | 8215                |
-| Toronto Maple Leafs               | 9322                |
-| Studio 54 Radio                   | 9145                |
-| New Jersey Devils                 | 9311                |
-| Sports 962                        | 9222                |
-| Kansas City Chiefs                | 9161                |
-| FOX News Channel                  | foxnewschannel      |
-| RadioClassics                     | radioclassics       |
-| Tennessee Titans                  | 9205                |
-| Detroit Red Wings                 | 9305                |
-| Telemundo                         | 9466                |
-| The Coffee House                  | coffeehouse         |
-| Vegas Golden Knights              | 9453                |
-| Neil Diamond Radio                | 8372                |
-| Minnesota Twins                   | 9247                |
-| The Pulse                         | thepulse            |
-| HUR Voices                        | 9129                |
-| Tampa Bay Rays                    | 9257                |
-| SiriusXM Love                     | siriuslove          |
-| Rock The Bells Radio              | 9471                |
-| Jacksonville Jaguars              | 9160                |
-| Sports 953                        | 9422                |
-| Philadelphia 76ers                | 9288                |
-| Oakland Athletics                 | 9250                |
-| Canada Talks                      | 9172                |
-| Watercolors                       | jazzcafe            |
-| Edmonton Oilers                   | 9306                |
-| Elevations                        | 9362                |
-| SiriusXM Patriot                  | siriuspatriot       |
-| On Broadway                       | broadwaysbest       |
-| Detroit Pistons                   | 9274                |
-| CNN en Español                    | cnnespanol          |
-| Tampa Bay Lightning               | 9321                |
-| Indie 1.0                         | 9451                |
-| NBC Sports Radio                  | 9452                |
-| Celebrate!                        | 9412                |
-| Y2Kountry                         | 9340                |
-| Los Angeles Dodgers               | 9244                |
-| Sports 993                        | 9337                |
-| CNN International                 | 9454                |
-| Seattle Seahawks                  | 9201                |
-| Cleveland Cavaliers               | 9271                |
-| Luna                              | 9189                |
-| Caliente                          | rumbon              |
-| Sports 956                        | 9425                |
-| Ramsey Media Channel              | 9443                |
-| Faction Talk                      | 8184                |
-| Winnipeg Jets                     | 9325                |
-| 50s on 5                          | siriusgold          |
-| Soul Town                         | soultown            |
-| Anaheim Ducks                     | 9296                |
-| New York Mets                     | 9248                |
-| SiriusXM Urban View               | 8238                |
-| Comedy Roundup                    | bluecollarcomedy    |
-| Sports 955                        | 9424                |
-| Influence Franco                  | 8246                |
-| SXM Fantasy Sports Radio          | 8368                |
-| CBC Country                       | bandeapart          |
-| Boston Bruins                     | 9297                |
-| Holiday Traditions                | 9342                |
+```
+ID                  | Num | Name                         
+siriushits1         | 2   | SiriusXM Hits 1              
+coffeehouse         | 3   | The Coffee House             
+9544                | 4   | TikTok Radio                 
+thepulse            | 5   | The Pulse                    
+9450                | 6   | PopRocks                     
+totally70s          | 7   | 70s on 7                     
+big80s              | 8   | 80s on 8                     
+8206                | 9   | 90s on 9                     
+8208                | 10  | Pop2K                        
+9556                | 11  | The 10s Spot                 
+9608                | 12  | The Kelly Clarkson Connection
+9406                | 13  | Pitbull's Globalization      
+9614                | 14  | Life with John Mayer         
+9557                | 15  | Mosaic                       
+starlite            | 16  | The Blend                    
+9624                | 17  | The GRAMMY Channel           
+9446                | 18  | The Beatles Channel          
+9523                | 19  | Bob Marley's Tuff Gong       
+estreetradio        | 20  | E Street Radio               
+undergroundgarage   | 21  | Underground Garage           
+8370                | 22  | Pearl Jam Radio              
+gratefuldead        | 23  | Grateful Dead                
+radiomargaritaville | 24  | Radio Margaritaville         
+classicrewind       | 25  | Classic Rewind               
+classicvinyl        | 26  | Classic Vinyl                
+thebridge           | 27  | The Bridge                   
+thespectrum         | 28  | The Spectrum                 
+9139                | 29  | Phish Radio                  
+9506                | 30  | Dave Matthews Band Radio     
+9407                | 31  | Tom Petty Radio              
+9507                | 32  | U2 X-Radio                   
+firstwave           | 33  | 1st Wave                     
+90salternative      | 34  | Lithium                      
+leftofcenter        | 35  | SiriusXMU                    
+altnation           | 36  | Alt Nation                   
+octane              | 37  | Octane                       
+buzzsaw             | 38  | Ozzy's Boneyard              
+hairnation          | 39  | Hair Nation                  
+hardattack          | 40  | Liquid Metal                 
+9413                | 41  | SiriusXM Turbo               
+9524                | 42  | Sound 42                     
+9471                | 43  | Rock The Bells Radio         
+hiphopnation        | 44  | Hip-Hop Nation               
+shade45             | 45  | Shade 45                     
+hotjamz             | 46  | The Heat                     
+heartandsoul        | 47  | Heart & Soul                 
+9609                | 48  | The Flow                     
+9610                | 49  | Flex2K                       
+9339                | 50  | SiriusXM FLY                 
+8228                | 51  | The Groove                   
+thebeat             | 52  | BPM                          
+9472                | 53  | Diplo's Revolution           
+9145                | 54  | Studio 54 Radio              
+chill               | 55  | SiriusXM Chill               
+newcountry          | 56  | The Highway                  
+9340                | 57  | Y2Kountry                    
+primecountry        | 58  | Prime Country                
+9418                | 59  | No Shoes Radio               
+9599                | 60  | Carrie's Country             
+theroadhouse        | 61  | Willie's Roadhouse           
+outlawcountry       | 62  | Outlaw Country               
+9607                | 63  | Chris Stapleton Radio        
+praise              | 64  | Kirk Franklin's Praise       
+spirit              | 65  | The Message                  
+jazzcafe            | 66  | Watercolors                  
+purejazz            | 67  | Real Jazz                    
+spa73               | 68  | Spa                          
+broadwaysbest       | 69  | On Broadway                  
+siriuslysinatra     | 70  | Siriusly Sinatra             
+8205                | 71  | 40s Junction                 
+siriusgold          | 72  | 50s Gold                     
+60svibrations       | 73  | 60s Gold                     
+soultown            | 74  | Smokey's Soul Town           
+siriusblues         | 75  | BB King's Bluesville         
+elvisradio          | 76  | Elvis Radio                  
+bluegrass           | 77  | Bluegrass Junction           
+symphonyhall        | 78  | Symphony Hall                
+9353                | 79  | The Billy Joel Channel       
+espnradio           | 80  | ESPN Radio                   
+8254                | 81  | ESPN Xtra                    
+8213                | 82  | Mad Dog Sports Radio         
+9445                | 83  | FOX Sports on SiriusXM       
+siriussportsaction  | 84  | College Sports Radio         
+9525                | 85  | NBC Sports Audio             
+9385                | 86  | SiriusXM NBA Radio           
+8368                | 87  | Fantasy Sports Radio         
+siriusnflradio      | 88  | SiriusXM NFL Radio           
+8333                | 89  | MLB Network Radio            
+siriusnascarradio   | 90  | SiriusXM NASCAR Radio        
+8185                | 91  | NHL Network Radio            
+8186                | 92  | SiriusXM PGA TOUR Radio      
+9494                | 93  | Netflix Is A Joke Radio      
+9408                | 94  | Comedy Greats                
+9356                | 95  | Comedy Central Radio         
+9469                | 96  | KevinHart Laugh Out Loud     
+bluecollarcomedy    | 97  | Comedy Roundup               
+laughbreak          | 98  | Pure Comedy                  
+rawdog              | 99  | Raw Comedy                   
+howardstern100      | 100 | Howard 100                   
+howardstern101      | 101 | Howard 101                   
+9409                | 102 | Radio Andy                   
+8184                | 103 | Faction Talk                 
+9580                | 104 | Conan O'Brien Radio          
+9351                | 105 | SiriusXM 105                 
+9638                | 107 | Dateline 24/7                
+9390                | 108 | TODAY Show Radio             
+siriusstars         | 109 | Stars                        
+doctorradio         | 110 | Doctor Radio                 
+9449                | 111 | Triumph                      
+cnbc                | 112 | CNBC                         
+9369                | 113 | FOX Business                 
+foxnewschannel      | 114 | FOX News Channel             
+9410                | 115 | FOX News Headlines 24/7      
+cnn                 | 116 | CNN                          
+cnnheadlinenews     | 117 | HLN                          
+8367                | 118 | MSNBC                        
+bbcworld            | 120 | BBC World Service            
+bloombergradio      | 121 | Bloomberg Radio              
+nprnow              | 122 | NPR Now                      
+8239                | 123 | PRX Remix                    
+indietalk           | 124 | POTUS Politics               
+siriuspatriot       | 125 | SiriusXM Patriot             
+8238                | 126 | SiriusXM Urban View          
+siriusleft          | 127 | SiriusXM Progress            
+9392                | 128 | Joel Osteen Radio            
+thecatholicchannel  | 129 | The Catholic Channel         
+ewtnglobal          | 130 | EWTN Radio                   
+8307                | 131 | Family Talk                  
+9359                | 132 | Business Radio               
+9530                | 133 | Disney Hits                  
+8216                | 134 | Kids Place                   
+9366                | 135 | KIDZ BOP Radio               
+9600                | 136 | Moonbug Radio                
+9133                | 140 | Holy Culture Radio           
+9129                | 141 | HUR Voices                   
+9130                | 142 | HBCU                         
+9131                | 143 | BYUradio                     
+9132                | 144 | Korea Today                  
+9411                | 145 | SLAM Radio                   
+roaddogtrucking     | 146 | Road Dog Trucking            
+9367                | 147 | RURAL Radio                  
+radioclassics       | 148 | RadioClassics                
+8215                | 149 | Escape                       
+8229                | 150 | Bill Gaither's enLighten     
+9593                | 151 | Hits Uno                     
+rumbon              | 152 | Caliente                     
+9186                | 153 | Águila                       
+9135                | 154 | En Vivo                      
+9134                | 155 | Latin Vault                  
+8230                | 156 | SiriusXM Fight Nation        
+9341                | 157 | SiriusXM FC                  
+9448                | 158 | VSiN                         
+9512                | 159 | SportsGrid                   
+9582                | 163 | Attitude Franco              
+9583                | 164 | Mixtape: North               
+9358                | 165 | The Indigiverse              
+9584                | 166 | Racines Musicales            
+9172                | 167 | Canada Talks                 
+8259                | 168 | SiriusXM Comedy Club         
+cbcradioone         | 169 | CBC Radio One                
+premiereplus        | 170 | ICI Première                 
+9585                | 171 | Top of the Country Radio     
+8248                | 172 | SiriusXM Scoreboard          
+8244                | 173 | The Verge                    
+8246                | 174 | Influence Franco             
+8256                | 218 | SiriusXM INDYCAR Nation      
+9415                | 301 | Road Trip Radio              
+9543                | 302 | Andy Cohen's Kiki Lounge     
+9492                | 303 | Pandora Now                  
+thevault            | 308 | Deep Tracks                  
+jamon               | 309 | Jam On 309                   
+9420                | 311 | Yacht Rock 311               
+9547                | 312 | Bon Jovi Radio               
+9611                | 313 | Alt2K                        
+faction             | 314 | FACTION PUNK                 
+9570                | 315 | Red Hot Chili Peppers        
+9364                | 330 | SiriusXM Silk 330            
+reggaerhythms       | 332 | Shaggy Boombastic Radio      
+9623                | 340 | Radio Monaco                 
+9365                | 341 | Utopia                       
+9475                | 349 | Bakersfield Beat             
+9178                | 350 | Red White & Booze            
+9468                | 359 | North Americana              
+9414                | 362 | Grown Folk JAMZ              
+9493                | 370 | ESPN Podcasts                
+9455                | 371 | SiriusXM ACC Radio           
+9459                | 372 | SiriusXM Big Ten Radio       
+9458                | 374 | SiriusXM SEC Radio           
+9473                | 375 | Infinity Sports Network      
+9514                | 453 | CNN Originals                
+9454                | 454 | CNN International            
+8237                | 455 | C-SPAN Radio                 
+9479                | 460 | The Billy Graham Channel     
+9481                | 501 | Limited Edition 1            
+9545                | 502 | Limited Edition 2            
+9546                | 503 | Limited Edition 3            
+9398                | 504 | Limited Edition 4            
+9399                | 505 | Limited Edition 5            
+9400                | 506 | Limited Edition 6            
+9401                | 507 | Limited Edition 7            
+9402                | 508 | Limited Edition 8            
+9403                | 509 | Limited Edition 9            
+9548                | 510 | Limited Edition 10           
+9549                | 511 | Limited Edition 11           
+9482                | 512 | Limited Edition 12           
+9572                | 550 | Pop Top 500                  
+9573                | 551 | 80s on 8 Top 500             
+9574                | 552 | 90s on 9 Top 500             
+9575                | 553 | Classic Rock Top 1000        
+9577                | 556 | Hip-Hop Top 500              
+9576                | 558 | Country Top 1000             
+9571                | 560 | Billboard Top 500            
+9342                | 602 | Holiday Traditions           
+9634                | 702 | Disney Jr. Radio             
+9378                | 703 | Oldies Party                 
+9500                | 704 | SoulCycle Radio              
+9502                | 705 | SiriusXM K-Pop               
+siriuslove          | 708 | SiriusXM Love                
+8207                | 710 | The Loft                     
+9352                | 711 | Petty's Buried Treasure      
+9470                | 712 | Marky Ramone's Punk Rock     
+9175                | 713 | RockBar                      
+9375                | 715 | Classic Rock Party           
+9397                | 720 | Sway's Universe              
+9558                | 721 | Stevie's Coolest Songs       
+9541                | 723 | RTB - Mixdown                
+9564                | 724 | SoundCloud Radio             
+9526                | 735 | Steve Aoki's Remix Radio     
+9527                | 736 | A State of Armin             
+9633                | 737 | Avicii Radio                 
+9630                | 739 | Savior Sunday Daily          
+9590                | 740 | Outsiders Radio              
+8227                | 741 | The Village                  
+metropolitanopera   | 744 | Met Opera Radio              
+siriuspops          | 745 | SiriusXM Pops                
+9569                | 747 | Miles Davis Radio            
+9511                | 754 | Poplandia                    
+9501                | 757 | The Tragically Hip Radio     
+9513                | 758 | Iceberg                      
+energie2            | 759 | Les Tubes Franco             
+9529                | 760 | Chucho's Cuba & Beyond       
+9188                | 762 | Caricia                      
+8225                | 763 | Viva                         
+9187                | 764 | Latidos                      
+9185                | 765 | Flow Nación                  
+9189                | 766 | Luna                         
+9190                | 767 | Rumbón                       
+9191                | 768 | La Kueva                     
+9503                | 771 | She's So Funny               
+9542                | 772 | Comedy Classics              
+9592                | 779 | Mental Health Radio          
+9597                | 781 | SiriusXM App Originals       
+9636                | 787 | SmartLess Radio              
+9632                | 788 | Crime Junkie Radio           
+9601                | 789 | The Jeff Lewis Channel       
+9405                | 790 | Entertainment Now            
+9565                | 791 | Freakonomics Radio           
+9443                | 792 | Ramsey Network               
+9581                | 793 | Law&Crime                    
+cnnespanol          | 795 | CNN en Español               
+9491                | 796 | ATN                          
+9639                | 798 | NBC News NOW                 
+9637                | 799 | The Weather Channel          
+9146                | 800 | Arizona Cardinals            
+9147                | 801 | Atlanta Falcons              
+9148                | 802 | Baltimore Ravens             
+9149                | 803 | Buffalo Bills                
+9150                | 804 | Carolina Panthers            
+9151                | 805 | Chicago Bears                
+9152                | 806 | Cincinnati Bengals           
+9153                | 807 | Cleveland Browns             
+9154                | 808 | Dallas Cowboys               
+9155                | 809 | Denver Broncos               
+9156                | 810 | Detroit Lions                
+9157                | 811 | Green Bay Packers            
+9158                | 812 | Houston Texans               
+9159                | 813 | Indianapolis Colts           
+9160                | 814 | Jacksonville Jaguars         
+9161                | 815 | Kansas City Chiefs           
+9168                | 816 | Las Vegas Raiders            
+9171                | 817 | Los Angeles Chargers         
+9203                | 818 | Los Angeles Rams             
+9162                | 819 | Miami Dolphins               
+9163                | 820 | Minnesota Vikings            
+9164                | 821 | New England Patriots         
+9165                | 822 | New Orleans Saints           
+9166                | 823 | New York Giants              
+9167                | 824 | New York Jets                
+9169                | 825 | Philadelphia Eagles          
+9170                | 826 | Pittsburgh Steelers          
+9202                | 827 | San Francisco 49ers          
+9201                | 828 | Seattle Seahawks             
+9204                | 829 | Tampa Bay Buccaneers         
+9205                | 830 | Tennessee Titans             
+9206                | 831 | Washington Commanders        
+9594                | 832 | NFL en Español 832           
+9231                | 840 | Arizona Diamondbacks         
+9232                | 841 | Atlanta Braves               
+9233                | 842 | Baltimore Orioles            
+9234                | 843 | Boston Red Sox               
+9235                | 844 | Chicago Cubs                 
+9236                | 845 | Chicago White Sox            
+9237                | 846 | Cincinnati Reds              
+9238                | 847 | Cleveland Guardians          
+9239                | 848 | Colorado Rockies             
+9240                | 849 | Detroit Tigers               
+9241                | 850 | Houston Astros               
+9242                | 851 | Kansas City Royals           
+9243                | 852 | Los Angeles Angels           
+9244                | 853 | Los Angeles Dodgers          
+9245                | 854 | Miami Marlins                
+9246                | 855 | Milwaukee Brewers            
+9247                | 856 | Minnesota Twins              
+9248                | 857 | New York Mets                
+9249                | 858 | New York Yankees             
+9250                | 859 | Oakland Athletics            
+9251                | 860 | Philadelphia Phillies        
+9252                | 861 | Pittsburgh Pirates           
+9253                | 862 | San Diego Padres             
+9254                | 863 | San Francisco Giants         
+9255                | 864 | Seattle Mariners             
+9256                | 865 | St. Louis Cardinals          
+9257                | 866 | Tampa Bay Rays               
+9258                | 867 | Texas Rangers                
+9259                | 868 | Toronto Blue Jays            
+9260                | 869 | Washington Nationals         
+9595                | 870 | MLB en Español 870           
+9596                | 871 | MLB en Español 871           
+9266                | 880 | Atlanta Hawks                
+9268                | 881 | Boston Celtics               
+9267                | 882 | Brooklyn Nets                
+9269                | 883 | Charlotte Hornets            
+9270                | 884 | Chicago Bulls                
+9271                | 885 | Cleveland Cavaliers          
+9272                | 886 | Dallas Mavericks             
+9273                | 887 | Denver Nuggets               
+9274                | 888 | Detroit Pistons              
+9275                | 889 | Golden State Warriors        
+9276                | 890 | Houston Rockets              
+9277                | 891 | Indiana Pacers               
+9278                | 892 | Los Angeles Clippers         
+9279                | 893 | Los Angeles Lakers           
+9280                | 894 | Memphis Grizzlies            
+9281                | 895 | Miami Heat                   
+9282                | 896 | Milwaukee Bucks              
+9283                | 897 | Minnesota Timberwolves       
+9284                | 898 | New Orleans Pelicans         
+9285                | 899 | New York Knicks              
+9286                | 900 | Oklahoma City Thunder        
+9287                | 901 | Orlando Magic                
+9288                | 902 | Philadelphia 76ers           
+9289                | 903 | Phoenix Suns                 
+9290                | 904 | Portland Trail Blazers       
+9292                | 905 | Sacramento Kings             
+9291                | 906 | San Antonio Spurs            
+9293                | 907 | Toronto Raptors              
+9294                | 908 | Utah Jazz                    
+9295                | 909 | Washington Wizards           
+9296                | 920 | Anaheim Ducks                
+9297                | 921 | Boston Bruins                
+9298                | 922 | Buffalo Sabres               
+9301                | 923 | Calgary Flames               
+9299                | 924 | Carolina Hurricanes          
+9302                | 925 | Chicago Blackhawks           
+9303                | 926 | Colorado Avalanche           
+9300                | 927 | Columbus Blue Jackets        
+9304                | 928 | Dallas Stars                 
+9305                | 929 | Detroit Red Wings            
+9306                | 930 | Edmonton Oilers              
+9307                | 931 | Florida Panthers             
+9308                | 932 | Los Angeles Kings            
+9309                | 933 | Minnesota Wild               
+9310                | 934 | Montreal Canadiens           
+9312                | 935 | Nashville Predators          
+9311                | 936 | New Jersey Devils            
+9313                | 937 | New York Islanders           
+9314                | 938 | New York Rangers             
+9315                | 939 | Ottawa Senators              
+9316                | 940 | Philadelphia Flyers          
+9318                | 941 | Pittsburgh Penguins          
+9319                | 942 | San Jose Sharks              
+9550                | 943 | Seattle Kraken               
+9320                | 944 | St. Louis Blues              
+9321                | 945 | Tampa Bay Lightning          
+9322                | 946 | Toronto Maple Leafs          
+9635                | 947 | Utah Hockey Club             
+9323                | 948 | Vancouver Canucks            
+9453                | 949 | Vegas Golden Knights         
+9324                | 950 | Washington Capitals          
+9325                | 951 | Winnipeg Jets                
+9220                | 952 | Big 12 952                   
+9422                | 953 | Big 12 953                   
+9423                | 954 | Big 12 954                   
+9424                | 955 | ACC 955                      
+9425                | 956 | ACC 956                      
+9426                | 957 | Big Ten 957                  
+9427                | 958 | Big Ten 958                  
+9428                | 959 | Big Ten 959                  
+9223                | 960 | SEC 960                      
+9221                | 961 | SEC 961                      
+9222                | 962 | SEC 962                      
+9631                | 963 | Sports 963                   
+9224                | 964 | Sports 964                   
+9225                | 965 | Sports 965                   
+9226                | 966 | Sports 966                   
+9227                | 967 | Sports 967                   
+9228                | 968 | Sports 968                   
+9229                | 969 | Sports 969                   
+9207                | 970 | Sports 970                   
+9208                | 971 | Sports 971                   
+9209                | 972 | Sports 972                   
+9210                | 973 | Sports 973                   
+9211                | 974 | Sports 974                   
+9212                | 975 | Sports 975                   
+9213                | 976 | Sports 976                   
+9214                | 977 | Sports 977                   
+9215                | 978 | Sports 978                   
+9216                | 979 | Sports 979                   
+9261                | 980 | Sports 980                   
+9262                | 981 | Sports 981                   
+9326                | 982 | Sports 982                   
+9327                | 983 | Sports 983                   
+9328                | 984 | Sports 984                   
+9329                | 985 | Sports 985                   
+9330                | 986 | Sports 986                   
+9331                | 987 | Sports 987                   
+9332                | 988 | Sports 988                   
+9333                | 989 | Sports 989                   
+9334                | 990 | Sports 990                   
+9335                | 991 | Sports 991                   
+9336                | 992 | Sports 992                   
+9337                | 993 | Sports 993                   
+9338                | 994 | Sports 994                   
+9602                | 995 | Sports 995                   
+9603                | 996 | Sports 996                   
+9604                | 997 | Sports 997                   
+9605                | 998 | Sports 998                   
+9606                | 999 | Sports 999
+```
