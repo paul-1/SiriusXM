@@ -21,7 +21,8 @@ Then in a player that supports HLS (QuickTime, VLC, ffmpeg, etc) you can access 
 
 Here's a list of some of the channel IDs:
 ```
-ID                  | Num | Name                         
+ID                  | Num | Name
+-----------------------------------------------                        
 siriushits1         | 2   | SiriusXM Hits 1              
 coffeehouse         | 3   | The Coffee House             
 9544                | 4   | TikTok Radio                 
