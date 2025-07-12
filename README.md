@@ -17,6 +17,8 @@ This script creates a server that serves HLS streams for SiriusXM channels. To u
 You can see a list of the channels by setting the -l or --list flag:
 `python3 sxm.py myuser mypassword -l`
 
+If you are in Canada then add --canada to the command line
+
 Then in a player that supports HLS (QuickTime, VLC, ffmpeg, etc) you can access a channel at http://127.0.0.1:8888/channel.m3u8 where "channel" is the channel name, ID, or Sirius channel number.
 
 Here's a list of some of the channel IDs:
