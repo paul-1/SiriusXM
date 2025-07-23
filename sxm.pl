@@ -7,7 +7,7 @@ use HTTP::Daemon;
 use HTTP::Status;
 use HTTP::Response;
 use LWP::UserAgent;
-use JSON;
+use JSON::XS;
 use MIME::Base64;
 use URI::Escape;
 use DateTime;
@@ -74,7 +74,7 @@ use HTTP::Request;
 use URI;
 use URI::Escape qw(uri_escape uri_unescape);
 use Time::HiRes qw(time);
-use JSON;
+use JSON::XS;
 use Data::Dumper;
 
 # Define HTTP status codes for the class
@@ -204,7 +204,7 @@ sub get {
     
     my $json;
     eval {
-        $json = JSON::decode_json($response->decoded_content);
+        $json = decode_json($response->decoded_content);
     };
     if ($@) {
         $self->log(sprintf('Error decoding json for method \'%s\': %s', $method, $@));
@@ -234,7 +234,7 @@ sub post {
     $req->header('Origin' => 'https://player.siriusxm.com');
     $req->header('Referer' => 'https://player.siriusxm.com/');
     
-    my $json_content = JSON::encode_json($postdata);
+    my $json_content = encode_json($postdata);
     $req->content($json_content);
     
     $self->debug("POST $url");
@@ -254,7 +254,7 @@ sub post {
     
     my $json;
     eval {
-        $json = JSON::decode_json($response->decoded_content);
+        $json = decode_json($response->decoded_content);
     };
     if ($@) {
         $self->log(sprintf('Error decoding json for method \'%s\': %s', $method, $@));
@@ -436,7 +436,7 @@ sub extract_gupid_from_cookie {
     if ($cookies =~ /SXMDATA=([^;]+)/) {
         my $data = uri_unescape($1);
         eval {
-            my $json = JSON::decode_json($data);
+            my $json = decode_json($data);
             if ($json->{gupId}) {
                 $self->{extracted_gupid} = $json->{gupId};
                 $self->debug("Extracted gupId from cookie: " . $self->{extracted_gupid});
