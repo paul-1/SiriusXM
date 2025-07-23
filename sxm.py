@@ -12,6 +12,8 @@ class SiriusXM:
     USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/604.5.6 (KHTML, like Gecko) Version/11.0.3 Safari/604.5.6'
     REST_FORMAT = 'https://player.siriusxm.com/rest/v2/experience/modules/{}'
     LIVE_PRIMARY_HLS = 'https://siriusxm-priprodlive.akamaized.net'
+    AUTH_FILE_PATH = os.path.expanduser('~/.sxm_auth.json')
+    AUTH_TIMEOUT_MINUTES = 10
 
     def __init__(self, username, password, region):
         self.session = requests.Session()
@@ -21,10 +23,85 @@ class SiriusXM:
         self.playlists = {}
         self.channels = None
         self.region = region
+        self.last_auth_time = None
+        
+        # Load persisted authentication state
+        self.load_auth_state()
+        
+        self.log('SiriusXM client initialized for region: {}'.format(region))
 
     @staticmethod
     def log(x):
         print('{} <SiriusXM>: {}'.format(datetime.datetime.now(datetime.UTC).strftime('%d.%b %Y %H:%M:%S'), x))
+    
+    def load_auth_state(self):
+        """Load persisted authentication state from JSON file"""
+        try:
+            if os.path.exists(self.AUTH_FILE_PATH):
+                with open(self.AUTH_FILE_PATH, 'r') as f:
+                    auth_data = json.load(f)
+                
+                self.last_auth_time = auth_data.get('last_auth_time')
+                cookies_data = auth_data.get('cookies', {})
+                
+                # Restore cookies to session
+                for name, value in cookies_data.items():
+                    self.session.cookies.set(name, value)
+                
+                if self.last_auth_time:
+                    self.log('Loaded authentication state from {}, last auth: {}'.format(
+                        self.AUTH_FILE_PATH, 
+                        datetime.datetime.fromtimestamp(self.last_auth_time, datetime.UTC).strftime('%Y-%m-%d %H:%M:%S UTC')
+                    ))
+                else:
+                    self.log('Loaded authentication state from {} (no previous auth time)'.format(self.AUTH_FILE_PATH))
+            else:
+                self.log('No existing authentication state found at {}'.format(self.AUTH_FILE_PATH))
+        except Exception as e:
+            self.log('Error loading authentication state: {}'.format(e))
+            self.last_auth_time = None
+    
+    def save_auth_state(self):
+        """Save current authentication state to JSON file"""
+        try:
+            auth_data = {
+                'last_auth_time': self.last_auth_time,
+                'cookies': dict(self.session.cookies)
+            }
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(self.AUTH_FILE_PATH), exist_ok=True)
+            
+            # Write to temporary file first, then rename for atomicity
+            temp_path = self.AUTH_FILE_PATH + '.tmp'
+            with open(temp_path, 'w') as f:
+                json.dump(auth_data, f, indent=2)
+            os.rename(temp_path, self.AUTH_FILE_PATH)
+            
+            # Set restrictive file permissions
+            os.chmod(self.AUTH_FILE_PATH, 0o600)
+            
+            self.log('Saved authentication state to {}'.format(self.AUTH_FILE_PATH))
+        except Exception as e:
+            self.log('Error saving authentication state: {}'.format(e))
+    
+    def should_refresh_authentication(self):
+        """Check if authentication should be refreshed based on time elapsed"""
+        if self.last_auth_time is None:
+            self.log('No previous authentication time, refresh needed')
+            return True
+        
+        elapsed_minutes = (time.time() - self.last_auth_time) / 60.0
+        should_refresh = elapsed_minutes >= self.AUTH_TIMEOUT_MINUTES
+        
+        if should_refresh:
+            self.log('Authentication timeout reached ({:.1f} minutes >= {} minutes), refresh needed'.format(
+                elapsed_minutes, self.AUTH_TIMEOUT_MINUTES))
+        else:
+            self.log('Authentication still valid ({:.1f} minutes < {} minutes)'.format(
+                elapsed_minutes, self.AUTH_TIMEOUT_MINUTES))
+        
+        return should_refresh
 
     def is_logged_in(self):
         return 'SXMDATA' in self.session.cookies
@@ -33,9 +110,10 @@ class SiriusXM:
         return 'AWSALB' in self.session.cookies and 'JSESSIONID' in self.session.cookies
 
     def get(self, method, params, authenticate=True):
-        if authenticate and not self.is_session_authenticated() and not self.authenticate():
-            self.log('Unable to authenticate')
-            return None
+        if authenticate and (not self.is_session_authenticated() or self.should_refresh_authentication()):
+            if not self.authenticate():
+                self.log('Unable to authenticate')
+                return None
 
         res = self.session.get(self.REST_FORMAT.format(method), params=params)
         if res.status_code != 200:
@@ -49,9 +127,10 @@ class SiriusXM:
             return None
 
     def post(self, method, postdata, authenticate=True):
-        if authenticate and not self.is_session_authenticated() and not self.authenticate():
-            self.log('Unable to authenticate')
-            return None
+        if authenticate and (not self.is_session_authenticated() or self.should_refresh_authentication()):
+            if not self.authenticate():
+                self.log('Unable to authenticate')
+                return None
 
         res = self.session.post(self.REST_FORMAT.format(method), data=json.dumps(postdata))
         if res.status_code != 200:
@@ -131,7 +210,12 @@ class SiriusXM:
             return False
 
         try:
-            return data['ModuleListResponse']['status'] == 1 and self.is_session_authenticated()
+            success = data['ModuleListResponse']['status'] == 1 and self.is_session_authenticated()
+            if success:
+                self.last_auth_time = time.time()
+                self.save_auth_state()
+                self.log('Authentication successful, state saved')
+            return success
         except KeyError:
             self.log('Error parsing json response for authentication')
             return False
@@ -178,12 +262,14 @@ class SiriusXM:
         # login if session expired
         if message_code == 201 or message_code == 208:
             if max_attempts > 0:
-                self.log('Session expired, logging in and authenticating')
+                self.log('Session expired (code {}), forcing re-authentication'.format(message_code))
+                # Force re-authentication by clearing last_auth_time
+                self.last_auth_time = None
                 if self.authenticate():
-                    self.log('Successfully authenticated')
+                    self.log('Successfully re-authenticated after session expiry')
                     return self.get_playlist_url(guid, channel_id, use_cache, max_attempts - 1)
                 else:
-                    self.log('Failed to authenticate')
+                    self.log('Failed to re-authenticate after session expiry')
                     return None
             else:
                 self.log('Reached max attempts for playlist')
@@ -240,7 +326,9 @@ class SiriusXM:
         res = self.session.get(url, params=params)
 
         if res.status_code == 403:
-            self.log('Received status code 403 on playlist, renewing session')
+            self.log('Received status code 403 on playlist, forcing re-authentication')
+            # Force re-authentication by clearing last_auth_time
+            self.last_auth_time = None
             return self.get_playlist(name, False)
 
         if res.status_code != 200:
@@ -267,7 +355,9 @@ class SiriusXM:
 
         if res.status_code == 403:
             if max_attempts > 0:
-                self.log('Received status code 403 on segment, renewing session')
+                self.log('Received status code 403 on segment, forcing re-authentication')
+                # Force re-authentication by clearing last_auth_time
+                self.last_auth_time = None
                 self.get_playlist(path.split('/', 2)[1], False)
                 return self.get_segment(path, max_attempts - 1)
             else:
