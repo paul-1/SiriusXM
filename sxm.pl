@@ -16,6 +16,13 @@ use Data::Dumper;
 use HTTP::Cookies;
 use Time::HiRes qw(time);
 
+# Define HTTP status codes directly
+use constant {
+    HTTP_OK => 200,
+    HTTP_FORBIDDEN => 403,
+    HTTP_INTERNAL_SERVER_ERROR => 500
+};
+
 # Parse command line arguments
 my ($list, $port, $canada, $env, $debug);
 my $username = "";
@@ -26,7 +33,7 @@ GetOptions(
     "port|p=i" => \$port,
     "canada|ca" => \$canada,
     "env|e" => \$env,
-    "debug|d" => \$debug,
+    "debug|d+" => \$debug,  # Allow -d -d -d for increased debug levels
 ) or die "Error in command line arguments\n";
 
 # Default port if not provided
@@ -53,6 +60,14 @@ use Time::HiRes qw(time);
 use JSON;
 use Data::Dumper;
 
+# Define HTTP status codes for the class
+use constant {
+    HTTP_OK => 200,
+    HTTP_FORBIDDEN => 403,
+    HTTP_NOT_FOUND => 404,
+    HTTP_TIMEOUT => 408
+};
+
 sub new {
     my ($class, $username, $password, $region, $debug) = @_;
     
@@ -64,8 +79,9 @@ sub new {
     $ua->default_header('Origin' => 'https://player.siriusxm.com');
     $ua->default_header('Referer' => 'https://player.siriusxm.com/');
     
-    # Set shorter timeout for faster failure detection
-    $ua->timeout(10);  
+    # Set reasonable timeout values
+    $ua->timeout(20);  # 20 seconds for overall timeout
+    $ua->conn_cache(0);  # Disable connection caching to avoid stale connections
     
     # Fallback hardcoded gupId in case we can't get it from cookies
     # This is used by the Python script and might still work
@@ -112,14 +128,14 @@ sub debug {
 sub is_logged_in {
     my $self = shift;
     my $cookies = $self->{ua}->cookie_jar->as_string;
-    $self->debug("Cookie jar: $cookies", 2);
+    $self->debug("Cookie jar: $cookies", 3); # Changed to level 3
     return ($cookies =~ /SXMDATA=/);
 }
 
 sub is_session_authenticated {
     my $self = shift;
     my $cookies = $self->{ua}->cookie_jar->as_string;
-    $self->debug("Cookie jar: $cookies", 2);
+    $self->debug("Cookie jar: $cookies", 3); # Changed to level 3
     return ($cookies =~ /AWSALB=/ && $cookies =~ /JSESSIONID=/);
 }
 
@@ -156,9 +172,14 @@ sub get {
     $uri->query_form($params);
     
     $self->debug("GET $uri");
-    my $response = $self->{ua}->get($uri);
     
-    if ($response->code != 200) {
+    my $start_time = time();
+    my $response = $self->{ua}->get($uri);
+    my $elapsed = time() - $start_time;
+    
+    $self->debug(sprintf("GET completed in %.2f seconds with status %d", $elapsed, $response->code));
+    
+    if ($response->code != HTTP_OK) {
         $self->log(sprintf('Received status code %d for method \'%s\'', $response->code, $method));
         $self->debug("Response: " . $response->as_string, 2);
         return undef;
@@ -202,9 +223,13 @@ sub post {
     $self->debug("POST $url");
     $self->debug("POST data: $json_content", 2);
     
+    my $start_time = time();
     my $response = $self->{ua}->request($req);
+    my $elapsed = time() - $start_time;
     
-    if ($response->code != 200) {
+    $self->debug(sprintf("POST completed in %.2f seconds with status %d", $elapsed, $response->code));
+    
+    if ($response->code != HTTP_OK) {
         $self->log(sprintf('Received status code %d for method \'%s\'', $response->code, $method));
         $self->debug("Response: " . $response->as_string, 2);
         return undef;
@@ -670,48 +695,6 @@ sub try_direct_stream_patterns {
             }
             
             return $url;
-        } elsif ($response->code == 403) {
-            # Try authenticating and try again
-            if ($self->authenticate) {
-                # Update token
-                $token = $self->get_sxmak_token;
-                $gup_id = $self->get_gup_id;
-                
-                $params = {
-                    token => $token,
-                    consumer => 'k2',
-                    gupId => $gup_id,
-                };
-                
-                $uri = URI->new($url);
-                $uri->query_form($params);
-                
-                $response = $self->{ua}->head($uri);
-                if ($response->is_success) {
-                    $self->log("Found working direct URL after auth: $url");
-                    
-                    # Set subdirectory based on the pattern that worked
-                    if ($format =~ /HLS_.*?_256k_v3/) {
-                        $self->{current_channel_subdir}{$channel_id} = "HLS_${channel_id}_256k_v3";
-                        $self->{current_base_path}{$channel_id} = "/AAC_Data/$channel_id/HLS_${channel_id}_256k_v3";
-                    } else {
-                        # Extract the base path from the URL
-                        my $base_path = $url;
-                        $base_path =~ s|^$self->{live_primary_hls}||;
-                        $base_path =~ s|/[^/]+$||;
-                        $self->{current_base_path}{$channel_id} = $base_path;
-                        
-                        # Extract subdirectory if present
-                        if ($base_path =~ m|/([^/]+)$|) {
-                            $self->{current_channel_subdir}{$channel_id} = $1;
-                        } else {
-                            $self->{current_channel_subdir}{$channel_id} = '';
-                        }
-                    }
-                    
-                    return $url;
-                }
-            }
         }
     }
     
@@ -743,9 +726,14 @@ sub get_playlist_variant_url {
     $uri->query_form($params);
     
     $self->debug("Getting playlist variant URL: $uri");
-    my $response = $self->{ua}->get($uri);
     
-    if ($response->code == 403) {
+    my $start_time = time();
+    my $response = $self->{ua}->get($uri);
+    my $elapsed = time() - $start_time;
+    
+    $self->debug(sprintf("Got playlist variant in %.2f seconds with status %d", $elapsed, $response->code));
+    
+    if ($response->code == HTTP_FORBIDDEN) {
         if ($max_attempts > 0) {
             $self->log("Received 403 on variant URL, re-authenticating and trying again");
             $self->authenticate();
@@ -756,7 +744,7 @@ sub get_playlist_variant_url {
         }
     }
     
-    if ($response->code != 200) {
+    if ($response->code != HTTP_OK) {
         $self->log(sprintf('Received status code %d on playlist variant retrieval', $response->code));
         $self->debug("Response: " . $response->as_string, 2);
         return undef;
@@ -882,24 +870,6 @@ sub get_direct_stream_url {
                 $self->log("Found working direct stream URL format " . ($i+1) . ": $url");
                 $self->{current_channel_subdir}{$channel_id} = "";
                 return $url;
-            } elsif ($response->code == 403) {
-                # Try authenticating and try again
-                if ($self->authenticate) {
-                    # Update token and retry
-                    $test_uri = URI->new($url);
-                    $test_uri->query_form({
-                        token => $self->get_sxmak_token,
-                        consumer => 'k2',
-                        gupId => $self->get_gup_id,
-                    });
-                    
-                    $response = $self->{ua}->head($test_uri);
-                    if ($response->is_success) {
-                        $self->log("Found working direct stream URL format " . ($i+1) . " after auth: $url");
-                        $self->{current_channel_subdir}{$channel_id} = "";
-                        return $url;
-                    }
-                }
             }
         }
     }
@@ -961,9 +931,14 @@ sub get_playlist {
     $uri->query_form($params);
     
     $self->debug("Requesting playlist: $uri");
-    my $response = $self->{ua}->get($uri);
     
-    if ($response->code == 403) {
+    my $start_time = time();
+    my $response = $self->{ua}->get($uri);
+    my $elapsed = time() - $start_time;
+    
+    $self->debug(sprintf("Got playlist in %.2f seconds with status %d", $elapsed, $response->code));
+    
+    if ($response->code == HTTP_FORBIDDEN) {
         $self->log('Received status code 403 on playlist, renewing session');
         if ($self->authenticate) {
             # Update token
@@ -982,7 +957,7 @@ sub get_playlist {
             $self->debug("Retrying playlist with new auth: $uri");
             $response = $self->{ua}->get($uri);
             
-            if ($response->code != 200) {
+            if ($response->code != HTTP_OK) {
                 $self->log('Still failed after authentication renewal');
                 return undef;
             }
@@ -992,7 +967,7 @@ sub get_playlist {
         }
     }
     
-    if ($response->code != 200) {
+    if ($response->code != HTTP_OK) {
         $self->log(sprintf('Received status code %d on playlist', $response->code));
         $self->debug("Response: " . $response->as_string, 2);
         return undef;
@@ -1016,37 +991,23 @@ sub get_playlist {
     # Determine the subdirectory to use
     my $subdir = $self->{current_channel_subdir}{$channel_id} || '';
     
-    # Create a new array to store the modified lines
-    my @modified_lines;
-    
-    # Process each line
     for my $i (0..$#lines) {
-        my $line = $lines[$i];
-        
-        # If it's an AAC file, modify the path
-        if ($line =~ /\.aac$/) {
-            $self->debug("Original segment: $line", 3);
-            
+        if ($lines[$i] =~ /\.aac$/) {
+            $self->debug("Original segment: $lines[$i]", 3);
             # Don't modify if it already has a path
-            if ($line !~ /^\//) {
+            if ($lines[$i] !~ /^\//) {
                 # Make sure we include the subdirectory if needed
                 if ($subdir) {
-                    $line = "$base_path/$subdir/$line";
+                    $lines[$i] = "$base_path/$subdir/$lines[$i]";
                 } else {
-                    $line = "$base_path/$line";
+                    $lines[$i] = "$base_path/$lines[$i]";
                 }
-                $self->debug("Modified segment: $line", 3);
+                $self->debug("Modified segment: $lines[$i]", 3);
             }
         }
-        
-        # Add the line (original or modified) to our result
-        push @modified_lines, $line;
     }
     
-    # Join the lines back together
-    my $result = join("\n", @modified_lines);
-    $self->debug("Returning modified playlist with " . scalar(@modified_lines) . " lines", 2);
-    return $result;
+    return join("\n", @lines);
 }
 
 sub get_segment {
@@ -1110,13 +1071,14 @@ sub get_segment {
     $uri->query_form($params);
     
     $self->debug("Getting segment: $uri");
-    print "Requesting segment: $uri\n";  # Print for debugging
     
+    my $start_time = time();
     my $response = $self->{ua}->get($uri);
+    my $elapsed = time() - $start_time;
     
-    print "Segment response code: " . $response->code . "\n"; # Print for debugging
+    $self->debug(sprintf("Got segment in %.2f seconds with status %d", $elapsed, $response->code));
     
-    if ($response->code == 403) {
+    if ($response->code == HTTP_FORBIDDEN) {
         $self->{segment_errors}++;
         
         if ($max_attempts > 0) {
@@ -1143,7 +1105,7 @@ sub get_segment {
                 $self->debug("Retrying segment with new auth: $uri");
                 $response = $self->{ua}->get($uri);
                 
-                if ($response->code == 200) {
+                if ($response->code == HTTP_OK) {
                     $self->debug("Successfully retrieved segment after auth renewal");
                     return $response->content;
                 }
@@ -1155,7 +1117,7 @@ sub get_segment {
             $self->log('Received status code 403 on segment, max attempts exceeded');
             return undef;
         }
-    } elsif ($response->code == 200) {
+    } elsif ($response->code == HTTP_OK) {
         # Reset error counter on success
         $self->{segment_errors} = 0;
     } else {
@@ -1163,7 +1125,7 @@ sub get_segment {
         $self->{segment_errors}++;
     }
     
-    if ($response->code == 404) {
+    if ($response->code == HTTP_NOT_FOUND) {
         $self->log("Segment not found (404): $path");
         
         # Try alternate paths if we have a channel context
@@ -1190,14 +1152,13 @@ sub get_segment {
         return undef;
     }
     
-    if ($response->code != 200) {
+    if ($response->code != HTTP_OK) {
         $self->log(sprintf('Received status code %d on segment', $response->code));
         $self->debug("Response: " . $response->as_string, 2);
         return undef;
     }
     
     $self->debug("Successfully retrieved segment: " . length($response->content) . " bytes");
-    print "Successfully retrieved segment: " . length($response->content) . " bytes\n"; # Print for debugging
     return $response->content;
 }
 
@@ -1275,7 +1236,7 @@ if (!$username || !$password) {
     print "  -p, --port PORT     Set server port (default: 9999)\n";
     print "  -ca, --canada       Use Canadian region\n";
     print "  -e, --env           Use credentials from environment variables\n";
-    print "  -d, --debug         Enable debug output\n";
+    print "  -d, --debug         Enable debug output (repeat for more detail, e.g., -d -d -d)\n";
     exit 1;
 }
 
@@ -1328,113 +1289,60 @@ if ($list) {
         LocalAddr => '0.0.0.0',
         LocalPort => $port,
         ReuseAddr => 1,
+        Timeout => 10,  # 10 second timeout for connections
     ) or die "Cannot create HTTP daemon: $!";
     
     print "Server started at http://localhost:$port/\n";
     print "Press Ctrl+C to exit\n";
     
-    # Ignore SIGPIPE to prevent the server from crashing when a client disconnects
-    $SIG{PIPE} = 'IGNORE';
-    
-    # Main server loop - keep running after clients disconnect
-    while (1) {
-        # Accept connection (blocking)
-        my $connection = $daemon->accept;
-        
-        # Skip if no connection (should not happen normally, but just in case)
-        next unless $connection;
-        
-        # Handle client connections separately
-        eval {
-            # Process requests until connection closes
-            while (my $request = eval { $connection->get_request }) {
-                my $path = $request->uri->path;
-                print "Received request: " . $request->method . " " . $path . "\n" if $debug;
+    while (my $connection = $daemon->accept) {
+        while (my $request = $connection->get_request) {
+            my $path = $request->uri->path;
+            my $referer = $request->header('Referer') || "Unknown";
+            my $user_agent = $request->header('User-Agent') || "Unknown";
+            
+            # Print full request info including URL requested by the player
+            printf "Received request: %s %s\nReferer: %s\nUser-Agent: %s\n", 
+                $request->method, $path, $referer, $user_agent if $debug;
+            
+            my $start_time = time();
+            
+            if ($path =~ /\.m3u8$/) {
+                my ($channel_name) = $path =~ m|/([^/]+)\.m3u8$|;
+                print "Channel request for: $channel_name\n" if $debug;
                 
-                if ($path =~ /\.m3u8$/) {
-                    my ($channel_name) = $path =~ m|/([^/]+)\.m3u8$|;
-                    print "Channel request for: $channel_name\n";
-                    
-                    my $data = $sxm->get_playlist($channel_name);
-                    
-                    if ($data) {
-                        my $response = HTTP::Response->new(200);
-                        $response->header('Content-Type' => 'application/x-mpegURL');
-                        $response->content($data);
-                        
-                        # Send the response but catch errors 
-                        eval {
-                            $connection->send_response($response);
-                            print "Sent playlist response\n";
-                        };
-                        if ($@) {
-                            print "Error sending playlist response: $@\n";
-                            last;
-                        }
-                    } else {
-                        # Send error but catch exceptions
-                        eval { 
-                            $connection->send_error(500);
-                            print "Sent 500 error response for playlist\n";
-                        };
-                        if ($@) {
-                            print "Error sending error response: $@\n";
-                            last;
-                        }
-                    }
-                } 
-                elsif ($path =~ /\.aac$/) {
-                    my $segment_path = substr($path, 1); # Remove leading slash
-                    print "Segment request for: $segment_path\n";
-                    
-                    my $data = $sxm->get_segment($segment_path);
-                    
-                    if ($data) {
-                        my $response = HTTP::Response->new(200);
-                        $response->header('Content-Type' => 'audio/x-aac');
-                        $response->content($data);
-                        
-                        # Send the response but catch errors
-                        eval { 
-                            $connection->send_response($response);
-                            print "Sent segment response (" . length($data) . " bytes)\n";
-                        };
-                        if ($@) {
-                            print "Error sending segment response: $@\n";
-                            last;
-                        }
-                    } else {
-                        # Send error but catch exceptions
-                        eval { 
-                            $connection->send_error(500);
-                            print "Sent 500 error response for segment\n";
-                        };
-                        if ($@) {
-                            print "Error sending error response: $@\n";
-                            last;
-                        }
-                    }
-                } 
-                elsif ($path =~ /\/key\/1$/) {
-                    my $response = HTTP::Response->new(200);
-                    $response->header('Content-Type' => 'text/plain');
-                    $response->content($HLS_AES_KEY);
-                    
-                    # Send the response but catch errors
-                    eval { 
-                        $connection->send_response($response);
-                        print "Sent key response\n";
-                    };
-                    if ($@) {
-                        print "Error sending key response: $@\n";
-                        last;
-                    }
-                } 
-                else {
-                    # Send a simple HTML page with instructions
-                    my $response = HTTP::Response->new(200);
-                    $response->header('Content-Type' => 'text/html');
-                    my $html = <<EOT;
+                my $data = $sxm->get_playlist($channel_name);
+                
+                if ($data) {
+                    my $response = HTTP::Response->new(HTTP_OK);
+                    $response->header('Content-Type' => 'application/x-mpegURL');
+                    $response->content($data);
+                    $connection->send_response($response);
+                } else {
+                    $connection->send_error(HTTP_INTERNAL_SERVER_ERROR);
+                }
+            } elsif ($path =~ /\.aac$/) {
+                my $segment_path = substr($path, 1); # Remove leading slash
+                my $data = $sxm->get_segment($segment_path);
+                
+                if ($data) {
+                    my $response = HTTP::Response->new(HTTP_OK);
+                    $response->header('Content-Type' => 'audio/x-aac');
+                    $response->content($data);
+                    $connection->send_response($response);
+                } else {
+                    $connection->send_error(HTTP_INTERNAL_SERVER_ERROR);
+                }
+            } elsif ($path =~ /\/key\/1$/) {
+                my $response = HTTP::Response->new(HTTP_OK);
+                $response->header('Content-Type' => 'text/plain');
+                $response->content($HLS_AES_KEY);
+                $connection->send_response($response);
+            } else {
+                # Send a simple HTML page with instructions
+                my $response = HTTP::Response->new(HTTP_OK);
+                $response->header('Content-Type' => 'text/html');
+                my $html = <<EOT;
 <!DOCTYPE html>
 <html>
 <head>
@@ -1455,27 +1363,15 @@ if ($list) {
 </body>
 </html>
 EOT
-                    $response->content($html);
-                    
-                    # Send the response but catch errors
-                    eval { 
-                        $connection->send_response($response);
-                        print "Sent HTML response\n";
-                    };
-                    if ($@) {
-                        print "Error sending HTML response: $@\n";
-                        last;
-                    }
-                }
+                $response->content($html);
+                $connection->send_response($response);
             }
-        };
-        
-        if ($@) {
-            print "Error handling client request: $@\n";
+            
+            my $elapsed = time() - $start_time;
+            if ($debug && $elapsed > 1.0) {
+                printf "Request for %s took %.2f seconds\n", $path, $elapsed;
+            }
         }
-        
-        # Close connection and continue accepting new ones
-        eval { $connection->close; };
-        print "Client disconnected - waiting for new connections\n";
+        $connection->close;
     }
 }
