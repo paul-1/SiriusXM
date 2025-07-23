@@ -24,7 +24,7 @@ use constant {
 };
 
 # Parse command line arguments
-my ($list, $port, $canada, $env, $debug);
+my ($list, $port, $canada, $env, $debug, $help);
 my $username = "";
 my $password = "";
 
@@ -34,7 +34,24 @@ GetOptions(
     "canada|ca" => \$canada,
     "env|e" => \$env,
     "debug|d+" => \$debug,  # Allow -d -d -d for increased debug levels
+    "help|h" => \$help,
 ) or die "Error in command line arguments\n";
+
+if ($help) {
+    print "SiriusXM proxy\n\n";
+    print "usage: sxm.pl [options] username password\n\n";
+    print "positional arguments:\n";
+    print "  username              SiriusXM username\n";
+    print "  password              SiriusXM password\n\n";
+    print "options:\n";
+    print "  -h, --help            show this help message and exit\n";
+    print "  -l, --list            list available channels\n";
+    print "  -p PORT, --port PORT  set server port (default: 9999)\n";
+    print "  -ca, --canada         use Canadian region\n";
+    print "  -e, --env             use credentials from environment variables\n";
+    print "  -d, --debug           enable debug output (repeat for more detail)\n";
+    exit 0;
+}
 
 # Default port if not provided
 $port //= 9999;
@@ -73,7 +90,7 @@ sub new {
     
     my $ua = LWP::UserAgent->new;
     $ua->cookie_jar(HTTP::Cookies->new(file => "$ENV{HOME}/.sxm_cookies.txt", autosave => 1));
-    $ua->agent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    $ua->agent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/604.5.6 (KHTML, like Gecko) Version/11.0.3 Safari/604.5.6');
     $ua->default_header('Accept' => '*/*');
     $ua->default_header('Accept-Language' => 'en-US,en;q=0.9');
     $ua->default_header('Origin' => 'https://player.siriusxm.com');
@@ -81,7 +98,7 @@ sub new {
     
     # Set reasonable timeout values
     $ua->timeout(20);  # 20 seconds for overall timeout
-    $ua->conn_cache(0);  # Disable connection caching to avoid stale connections
+    $ua->conn_cache(undef);  # Disable connection caching to avoid stale connections
     
     # Fallback hardcoded gupId in case we can't get it from cookies
     # This is used by the Python script and might still work
