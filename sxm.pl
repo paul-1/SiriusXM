@@ -975,7 +975,7 @@ sub get_playlist {
     my $base_path = $base_url;
     $base_path =~ s/^https?:\/\/[^\/]+//;
     
-    $self->debug("Base path for segments: $base_path");
+    $self->debug("Base path for segments: $base_path", 2);  # Moved to debug level 2
     # Store the base path for this channel for later use
     $self->{current_base_path}{$channel_id} = $base_path;
     
@@ -1007,44 +1007,26 @@ sub get_segment {
     my ($self, $path, $max_attempts) = @_;
     $max_attempts = defined $max_attempts ? $max_attempts : 5;
     
-    # Immediate debug output for timing visibility
-    $self->debug("Segment requested: $path", 2);
+    # Streamlined debug output - only show segment name for performance
+    my $segment_name = $path;
+    $segment_name =~ s|.*/||;  # Extract just the filename
+    $self->debug("Segment: $segment_name") if $self->{debug};
     
-    # If this is just a filename without path, try to construct complete path
-    if ($path !~ m|/| && $self->{current_channel_id}) {
+    # Optimize path construction - use cached base path directly
+    if ($path !~ m|^/| && $self->{current_channel_id}) {
         my $channel_id = $self->{current_channel_id};
-        my $base_path = $self->{current_base_path}{$channel_id} || '';
-        
-        # From the debug output you shared, the path should be:
-        # /AAC_Data/9450/HLS_9450_256k_v3/segment_filename.aac
-        my $full_path;
+        my $base_path = $self->{current_base_path}{$channel_id};
         
         if ($base_path) {
-            # Use the recorded base path
-            $full_path = "$base_path/$path";
-            $self->debug("Using base path: $full_path", 3);
+            # Use the recorded base path directly - most efficient
+            $path = "$base_path/$path";
         } else {
-            # Try to construct a path based on channel ID
-            my $subdir = $self->{current_channel_subdir}{$channel_id} || '';
-            if ($subdir) {
-                # Use the full path structure seen in your debug
-                $full_path = "/AAC_Data/$channel_id/$subdir/$path";
-            } else {
-                # Fall back to just the path
-                $full_path = $path;
-            }
-            $self->debug("Constructed path: $full_path", 3);
+            # Fast fallback - construct minimal path
+            $path = "/AAC_Data/$channel_id/HLS_${channel_id}_256k_v3/$path";
         }
-        
-        $path = $full_path;
     }
     
     my $url = "$self->{live_primary_hls}$path";
-    if ($path =~ /^\//) {
-        $url = "$self->{live_primary_hls}$path";
-    } else {
-        $url = "$self->{live_primary_hls}/$path";
-    }
     
     my $token = $self->get_sxmak_token;
     my $gup_id = $self->get_gup_id;
@@ -1064,98 +1046,68 @@ sub get_segment {
     my $uri = URI->new($url);
     $uri->query_form($params);
     
-    # Only show full URI in high debug mode to reduce noise
-    $self->debug("Fetching: $uri", 3);
+    # Reduce debug noise - only show in high debug mode
+    $self->debug("GET: $uri", 3);
     
     my $start_time = time();
     my $response = $self->{ua}->get($uri);
     my $elapsed = time() - $start_time;
     
-    # Immediate response status for timing
-    $self->debug(sprintf("Segment response: %d (%.2fs)", $response->code, $elapsed), 2);
+    # Streamlined status reporting
+    if ($response->code != HTTP_OK) {
+        $self->debug(sprintf("Segment failed: %d (%.2fs)", $response->code, $elapsed)) if $self->{debug};
+    } elsif ($self->{debug} >= 2) {
+        $self->debug(sprintf("Segment OK: %.2fs", $elapsed));
+    }
     
     if ($response->code == HTTP_FORBIDDEN) {
         $self->{segment_errors}++;
         
         if ($max_attempts > 0) {
-            $self->log(sprintf('403 on segment, errors: %d/%d', 
-                               $self->{segment_errors}, $self->{max_segment_errors}));
-            
-            if ($self->{segment_errors} >= $self->{max_segment_errors} && $self->authenticate) {
-                # Reset error counter after successful authentication
-                $self->{segment_errors} = 0;
-                
-                # Update token after authentication
-                $token = $self->get_sxmak_token;
-                $gup_id = $self->get_gup_id;
-                
-                $params = {
-                    token => $token,
-                    consumer => 'k2',
-                    gupId => $gup_id,
-                };
-                
-                $uri = URI->new($url);
-                $uri->query_form($params);
-                
-                $self->debug("Retrying with new auth", 2);
-                $response = $self->{ua}->get($uri);
-                
-                if ($response->code == HTTP_OK) {
-                    $self->debug("Auth retry successful", 2);
-                    return $response->content;
+            # Streamlined 403 handling - authenticate if needed, then retry
+            if ($self->{segment_errors} >= $self->{max_segment_errors}) {
+                $self->log(sprintf('403 on segment, re-authenticating (errors: %d)', $self->{segment_errors}));
+                if ($self->authenticate) {
+                    $self->{segment_errors} = 0;  # Reset on successful auth
+                    return $self->get_segment($path, $max_attempts - 1);
                 }
+            } else {
+                # Quick retry without re-auth
+                return $self->get_segment($path, $max_attempts - 1);
             }
-            
-            # Try a different URL pattern regardless of authentication
-            return $self->get_segment($path, $max_attempts - 1);
-        } else {
-            $self->log('403 on segment, max attempts exceeded');
-            return undef;
         }
-    } elsif ($response->code == HTTP_OK) {
-        # Reset error counter on success
-        $self->{segment_errors} = 0;
-    } else {
-        # Increment error counter for non-403 errors too
-        $self->{segment_errors}++;
+        
+        $self->log('403 on segment, max attempts exceeded');
+        return undef;
     }
     
-    if ($response->code == HTTP_NOT_FOUND) {
-        $self->log("Segment not found (404): $path");
-        
-        # Try alternate paths if we have a channel context
+    if ($response->code == HTTP_OK) {
+        # Reset error counter on success
+        $self->{segment_errors} = 0;
+        return $response->content;
+    }
+    
+    # Handle other errors
+    $self->{segment_errors}++;
+    
+    if ($response->code == HTTP_NOT_FOUND && $max_attempts > 0) {
+        # Quick 404 retry with alternate path
         if ($self->{current_channel_id} && $path =~ m|([^/]+)$|) {
             my $filename = $1;
             my $channel_id = $self->{current_channel_id};
+            my $alt_path = "/AAC_Data/$channel_id/HLS_${channel_id}_256k_v3/$filename";
             
-            # Try these alternate path patterns:
-            my @alt_paths = (
-                "/AAC_Data/$channel_id/HLS_${channel_id}_256k_v3/$filename",
-                "/$filename",
-                "/HLS_${channel_id}_256k_v3/$filename",
-            );
-            
-            foreach my $alt_path (@alt_paths) {
-                if ($alt_path ne $path) {
-                    $self->log("Trying alternative path: $alt_path");
-                    my $result = $self->get_segment($alt_path, $max_attempts - 1);
-                    return $result if $result;
-                }
+            if ($alt_path ne $path) {
+                return $self->get_segment($alt_path, $max_attempts - 1);
             }
         }
-        
-        return undef;
     }
     
     if ($response->code != HTTP_OK) {
-        $self->log(sprintf('Received status code %d on segment', $response->code));
-        $self->debug("Response: " . $response->as_string, 3);  # Higher debug level to reduce noise
+        $self->log(sprintf('Segment error %d: %s', $response->code, $segment_name));
         return undef;
     }
     
-    my $content_length = length($response->content);
-    $self->debug(sprintf("Segment retrieved: %d bytes", $content_length), 2);
     return $response->content;
 }
 
@@ -1286,59 +1238,61 @@ if ($list) {
         LocalAddr => '0.0.0.0',
         LocalPort => $port,
         ReuseAddr => 1,
-        Timeout => 10,  # 10 second timeout for connections
+        Timeout => 5,  # Reduced timeout for faster connection handling
     ) or die "Cannot create HTTP daemon: $!";
     
     print "Server started at http://localhost:$port/\n";
     print "Press Ctrl+C to exit\n";
     
-    # Main server loop with comprehensive error handling
+    # Main server loop with improved error handling
     while (1) {
         my $connection;
         
-        # Accept connection with error handling
+        # Accept connection with timeout handling
         eval {
+            local $SIG{ALRM} = sub { die "Connection accept timeout\n" };
+            alarm(5);  # 5 second timeout for accept
             $connection = $daemon->accept;
+            alarm(0);
         };
         if ($@) {
-            warn "Error accepting connection: $@";
-            sleep(0.1);  # Brief pause before retrying
+            warn "Connection accept error: $@" if $debug >= 2;
             next;
         }
         
         # Skip if no connection (timeout or error)
         next unless $connection;
         
-        # Set timeout for this connection
-        eval { $connection->timeout(30); };  # 30 second timeout per connection
+        # Set shorter timeout for connections
+        eval { $connection->timeout(15); };  # 15 second timeout per connection
         
-        # Handle requests from this connection with comprehensive error handling
+        # Handle requests from this connection with improved error handling
         eval {
             REQUEST_LOOP: while (1) {
                 my $request;
                 
-                # Get request with timeout handling
+                # Get request with timeout and disconnection handling
                 eval {
+                    local $SIG{ALRM} = sub { die "Request timeout\n" };
+                    alarm(10);  # 10 second timeout for getting request
                     $request = $connection->get_request;
+                    alarm(0);
                 };
                 if ($@) {
-                    warn "Error getting request: $@";
+                    # Timeout or other error getting request
                     last REQUEST_LOOP;
                 }
                 
                 # No more requests from this connection
                 last REQUEST_LOOP unless $request;
                 
-                # Process the request
+                # Process the request with comprehensive error handling
                 eval {
                     my $path = $request->uri->path;
-                    my $referer = $request->header('Referer') || "Unknown";
-                    my $user_agent = $request->header('User-Agent') || "Unknown";
                     
-                    # Print request info with immediate flushing for better timing visibility
-                    if ($debug) {
-                        printf "Request: %s %s (Referer: %s)\n", 
-                            $request->method, $path, $referer;
+                    # Minimal request logging to improve performance
+                    if ($debug >= 2) {
+                        printf "Request: %s %s\n", $request->method, $path;
                         STDOUT->flush();
                     }
                     
@@ -1346,7 +1300,7 @@ if ($list) {
                     
                     if ($path =~ /\.m3u8$/) {
                         my ($channel_name) = $path =~ m|/([^/]+)\.m3u8$|;
-                        printf "Processing playlist for channel: %s\n", $channel_name if $debug;
+                        printf "Playlist: %s\n", $channel_name if $debug;
                         STDOUT->flush() if $debug;
                         
                         my $data = $sxm->get_playlist($channel_name);
@@ -1356,15 +1310,22 @@ if ($list) {
                             $response->header('Content-Type' => 'application/x-mpegURL');
                             $response->header('Cache-Control' => 'no-cache');
                             $response->content($data);
-                            eval { $connection->send_response($response); };
+                            
+                            # Safe response sending with error handling
+                            eval { 
+                                $connection->send_response($response); 
+                                $connection->flush() if $connection->can('flush');
+                            };
+                            if ($@) {
+                                warn "Client disconnected during playlist send: $@" if $debug;
+                            }
                         } else {
                             eval { $connection->send_error(HTTP_INTERNAL_SERVER_ERROR); };
                         }
                     } elsif ($path =~ /\.aac$/) {
                         my $segment_path = substr($path, 1); # Remove leading slash
-                        printf "Processing segment: %s\n", $segment_path if $debug;
-                        STDOUT->flush() if $debug;
                         
+                        # Get segment data
                         my $data = $sxm->get_segment($segment_path);
                         
                         if ($data) {
@@ -1372,7 +1333,17 @@ if ($list) {
                             $response->header('Content-Type' => 'audio/x-aac');
                             $response->header('Cache-Control' => 'no-cache');
                             $response->content($data);
-                            eval { $connection->send_response($response); };
+                            
+                            # Safe response sending with disconnection handling
+                            eval { 
+                                $connection->send_response($response);
+                                $connection->flush() if $connection->can('flush');
+                            };
+                            if ($@) {
+                                # Client disconnected during segment transfer - this is normal
+                                warn "Client disconnected during segment transfer" if $debug >= 2;
+                                last REQUEST_LOOP;  # Break out of request loop, don't crash server
+                            }
                         } else {
                             eval { $connection->send_error(HTTP_INTERNAL_SERVER_ERROR); };
                         }
@@ -1410,15 +1381,16 @@ EOT
                         eval { $connection->send_response($response); };
                     }
                     
+                    # Only log slow requests to reduce noise
                     my $elapsed = time() - $start_time;
-                    if ($debug && $elapsed > 0.5) {  # Reduced threshold for better visibility
-                        printf "Request for %s completed in %.2f seconds\n", $path, $elapsed;
+                    if ($debug >= 2 && $elapsed > 1.0) {  # Only log requests over 1 second
+                        printf "Slow request %s: %.2fs\n", $path, $elapsed;
                         STDOUT->flush();
                     }
                 };
                 if ($@) {
-                    warn "Error processing request: $@";
-                    # Try to send an error response if possible
+                    warn "Request processing error: $@" if $debug >= 2;
+                    # Try to send error response, but don't crash if it fails
                     eval { $connection->send_error(HTTP_INTERNAL_SERVER_ERROR); };
                     # Continue with next request rather than breaking
                     next;
@@ -1426,7 +1398,7 @@ EOT
             }
         };
         if ($@) {
-            warn "Error in connection handling: $@";
+            warn "Connection handling error: $@" if $debug >= 2;
         }
         
         # Always close the connection, even if there were errors
