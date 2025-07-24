@@ -120,7 +120,6 @@ sub new {
         fallback_gupid => $fallback_gupid,
         extracted_gupid => undef,
         tokens => {}, # Store tokens keyed by timestamp to manage token rotation
-        last_auth_time => 0, # Time of last authentication
         segment_errors => 0, # Counter for consecutive segment errors
         max_segment_errors => 5, # Max consecutive errors before re-authenticating
     };
@@ -159,15 +158,13 @@ sub is_session_authenticated {
 sub should_refresh_authentication {
     my $self = shift;
     
-    # Refresh auth if it's been more than 10 minutes since last auth
-    # or if we've had too many consecutive segment errors
-    my $now = time();
-    my $auth_age = $now - $self->{last_auth_time};
-    my $refresh_needed = ($auth_age > 600) || ($self->{segment_errors} >= $self->{max_segment_errors});
+    # Only refresh auth if we've had too many consecutive segment errors
+    # Remove the time-based refresh to match Python behavior
+    my $refresh_needed = ($self->{segment_errors} >= $self->{max_segment_errors});
     
     if ($refresh_needed) {
-        $self->debug(sprintf("Auth refresh needed - age: %.1f seconds, errors: %d/%d", 
-                              $auth_age, $self->{segment_errors}, $self->{max_segment_errors}));
+        $self->debug(sprintf("Auth refresh needed due to errors: %d/%d", 
+                              $self->{segment_errors}, $self->{max_segment_errors}));
     }
     
     return $refresh_needed;
@@ -177,9 +174,8 @@ sub get {
     my ($self, $method, $params, $authenticate) = @_;
     $authenticate = defined $authenticate ? $authenticate : 1;
     
-    if ($authenticate && 
-        (!$self->is_session_authenticated || $self->should_refresh_authentication) && 
-        !$self->authenticate) {
+    # Only authenticate if not already authenticated (match Python behavior)
+    if ($authenticate && !$self->is_session_authenticated && !$self->authenticate) {
         $self->log('Unable to authenticate');
         return undef;
     }
@@ -220,9 +216,8 @@ sub post {
     my ($self, $method, $postdata, $authenticate) = @_;
     $authenticate = defined $authenticate ? $authenticate : 1;
     
-    if ($authenticate && 
-        (!$self->is_session_authenticated || $self->should_refresh_authentication) && 
-        !$self->authenticate) {
+    # Only authenticate if not already authenticated (match Python behavior)
+    if ($authenticate && !$self->is_session_authenticated && !$self->authenticate) {
         $self->log('Unable to authenticate');
         return undef;
     }
@@ -327,9 +322,6 @@ sub login {
         # Store the current SXMAK token
         $self->update_token();
         
-        # Update authentication time
-        $self->{last_auth_time} = time();
-        
         if ($self->is_logged_in) {
             $self->log("Login successful");
             $self->{segment_errors} = 0;  # Reset segment error counter
@@ -409,8 +401,7 @@ sub authenticate {
         # Store the current SXMAK token
         $self->update_token();
         
-        # Update authentication time and reset error counter
-        $self->{last_auth_time} = time();
+        # Reset error counter on successful authentication
         $self->{segment_errors} = 0;
         
         if ($self->is_session_authenticated) {
@@ -911,11 +902,8 @@ sub get_playlist {
     
     $self->debug("Found channel: ID=$channel_id, GUID=$guid");
     
-    # Make sure we're authenticated
-    if (!$self->authenticate()) {
-        $self->log("Authentication failed, can't get playlist");
-        return undef;
-    }
+    # Don't force authentication here - let get_playlist_url handle it
+    # This matches the Python version behavior
     
     # First try the API-based method to get the playlist URL
     my $url = $self->get_playlist_url($guid, $channel_id, $use_cache);
@@ -957,31 +945,8 @@ sub get_playlist {
     
     if ($response->code == HTTP_FORBIDDEN) {
         $self->log('Received status code 403 on playlist, renewing session');
-        if ($self->authenticate) {
-            # Update token
-            $token = $self->get_sxmak_token;
-            $gup_id = $self->get_gup_id;
-            
-            $params = {
-                token => $token,
-                consumer => 'k2',
-                gupId => $gup_id,
-            };
-            
-            $uri = URI->new($url);
-            $uri->query_form($params);
-            
-            $self->debug("Retrying playlist with new auth: $uri");
-            $response = $self->{ua}->get($uri);
-            
-            if ($response->code != HTTP_OK) {
-                $self->log('Still failed after authentication renewal');
-                return undef;
-            }
-        } else {
-            $self->log('Failed to renew session');
-            return undef;
-        }
+        # Match Python behavior: recursive call with use_cache=false
+        return $self->get_playlist($name, 0);
     }
     
     if ($response->code != HTTP_OK) {
@@ -1312,54 +1277,72 @@ if ($list) {
     print "Server started at http://localhost:$port/\n";
     print "Press Ctrl+C to exit\n";
     
-    while (my $connection = $daemon->accept) {
-        while (my $request = $connection->get_request) {
-            my $path = $request->uri->path;
-            my $referer = $request->header('Referer') || "Unknown";
-            my $user_agent = $request->header('User-Agent') || "Unknown";
-            
-            # Print full request info including URL requested by the player
-            printf "Received request: %s %s\nReferer: %s\nUser-Agent: %s\n", 
-                $request->method, $path, $referer, $user_agent if $debug;
-            
-            my $start_time = time();
-            
-            if ($path =~ /\.m3u8$/) {
-                my ($channel_name) = $path =~ m|/([^/]+)\.m3u8$|;
-                print "Channel request for: $channel_name\n" if $debug;
-                
-                my $data = $sxm->get_playlist($channel_name);
-                
-                if ($data) {
-                    my $response = HTTP::Response->new(HTTP_OK);
-                    $response->header('Content-Type' => 'application/x-mpegURL');
-                    $response->content($data);
-                    $connection->send_response($response);
-                } else {
-                    $connection->send_error(HTTP_INTERNAL_SERVER_ERROR);
-                }
-            } elsif ($path =~ /\.aac$/) {
-                my $segment_path = substr($path, 1); # Remove leading slash
-                my $data = $sxm->get_segment($segment_path);
-                
-                if ($data) {
-                    my $response = HTTP::Response->new(HTTP_OK);
-                    $response->header('Content-Type' => 'audio/x-aac');
-                    $response->content($data);
-                    $connection->send_response($response);
-                } else {
-                    $connection->send_error(HTTP_INTERNAL_SERVER_ERROR);
-                }
-            } elsif ($path =~ /\/key\/1$/) {
-                my $response = HTTP::Response->new(HTTP_OK);
-                $response->header('Content-Type' => 'text/plain');
-                $response->content($HLS_AES_KEY);
-                $connection->send_response($response);
-            } else {
-                # Send a simple HTML page with instructions
-                my $response = HTTP::Response->new(HTTP_OK);
-                $response->header('Content-Type' => 'text/html');
-                my $html = <<EOT;
+    # Main server loop with proper error handling
+    while (1) {
+        my $connection;
+        
+        # Accept connection with error handling
+        eval {
+            $connection = $daemon->accept;
+        };
+        if ($@) {
+            warn "Error accepting connection: $@";
+            next;
+        }
+        
+        # Skip if no connection (timeout or error)
+        next unless $connection;
+        
+        # Handle requests from this connection
+        eval {
+            while (my $request = $connection->get_request) {
+                eval {
+                    my $path = $request->uri->path;
+                    my $referer = $request->header('Referer') || "Unknown";
+                    my $user_agent = $request->header('User-Agent') || "Unknown";
+                    
+                    # Print full request info including URL requested by the player
+                    printf "Received request: %s %s\nReferer: %s\nUser-Agent: %s\n", 
+                        $request->method, $path, $referer, $user_agent if $debug;
+                    
+                    my $start_time = time();
+                    
+                    if ($path =~ /\.m3u8$/) {
+                        my ($channel_name) = $path =~ m|/([^/]+)\.m3u8$|;
+                        print "Channel request for: $channel_name\n" if $debug;
+                        
+                        my $data = $sxm->get_playlist($channel_name);
+                        
+                        if ($data) {
+                            my $response = HTTP::Response->new(HTTP_OK);
+                            $response->header('Content-Type' => 'application/x-mpegURL');
+                            $response->content($data);
+                            $connection->send_response($response);
+                        } else {
+                            $connection->send_error(HTTP_INTERNAL_SERVER_ERROR);
+                        }
+                    } elsif ($path =~ /\.aac$/) {
+                        my $segment_path = substr($path, 1); # Remove leading slash
+                        my $data = $sxm->get_segment($segment_path);
+                        
+                        if ($data) {
+                            my $response = HTTP::Response->new(HTTP_OK);
+                            $response->header('Content-Type' => 'audio/x-aac');
+                            $response->content($data);
+                            $connection->send_response($response);
+                        } else {
+                            $connection->send_error(HTTP_INTERNAL_SERVER_ERROR);
+                        }
+                    } elsif ($path =~ /\/key\/1$/) {
+                        my $response = HTTP::Response->new(HTTP_OK);
+                        $response->header('Content-Type' => 'text/plain');
+                        $response->content($HLS_AES_KEY);
+                        $connection->send_response($response);
+                    } else {
+                        # Send a simple HTML page with instructions
+                        my $response = HTTP::Response->new(HTTP_OK);
+                        $response->header('Content-Type' => 'text/html');
+                        my $html = <<EOT;
 <!DOCTYPE html>
 <html>
 <head>
@@ -1380,15 +1363,30 @@ if ($list) {
 </body>
 </html>
 EOT
-                $response->content($html);
-                $connection->send_response($response);
+                        $response->content($html);
+                        $connection->send_response($response);
+                    }
+                    
+                    my $elapsed = time() - $start_time;
+                    if ($debug && $elapsed > 1.0) {
+                        printf "Request for %s took %.2f seconds\n", $path, $elapsed;
+                    }
+                };
+                if ($@) {
+                    warn "Error handling request: $@";
+                    # Try to send an error response if possible
+                    eval { $connection->send_error(HTTP_INTERNAL_SERVER_ERROR); };
+                }
             }
-            
-            my $elapsed = time() - $start_time;
-            if ($debug && $elapsed > 1.0) {
-                printf "Request for %s took %.2f seconds\n", $path, $elapsed;
-            }
+        };
+        if ($@) {
+            warn "Error in request loop: $@";
         }
-        $connection->close;
+        
+        # Always close the connection, even if there were errors
+        eval { $connection->close; };
+        if ($@) {
+            warn "Error closing connection: $@";
+        }
     }
 }
