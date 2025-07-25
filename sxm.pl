@@ -15,7 +15,7 @@ use DateTime::TimeZone;
 use Data::Dumper;
 use HTTP::Cookies;
 use Time::HiRes qw(time);
-use Socket qw(SO_SNDBUF SO_RCVBUF IPPROTO_TCP TCP_NODELAY);
+use Socket qw(SO_SNDBUF SO_RCVBUF IPPROTO_TCP TCP_NODELAY SOL_SOCKET);
 use URI;
 
 # Define HTTP status codes directly
@@ -1262,10 +1262,10 @@ if ($list) {
     if ($socket) {
         eval {
             # Increase socket buffer sizes to reduce blocking
-            $socket->sockopt(SO_SNDBUF, 256 * 1024);  # 256KB send buffer
-            $socket->sockopt(SO_RCVBUF, 64 * 1024);   # 64KB receive buffer
+            $socket->setsockopt(SOL_SOCKET, SO_SNDBUF, pack('I', 256 * 1024));  # 256KB send buffer
+            $socket->setsockopt(SOL_SOCKET, SO_RCVBUF, pack('I', 64 * 1024));   # 64KB receive buffer
             # Enable TCP_NODELAY for immediate sending
-            $socket->sockopt(IPPROTO_TCP, TCP_NODELAY, 1);
+            $socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, pack('I', 1));
         };
         warn "Socket optimization warning: $@" if $@ && $debug;
     }
@@ -1298,8 +1298,8 @@ if ($list) {
             # Set socket options for better streaming performance
             my $conn_socket = $connection->socket;
             if ($conn_socket) {
-                $conn_socket->sockopt(SO_SNDBUF, 256 * 1024);  # 256KB send buffer
-                $conn_socket->sockopt(IPPROTO_TCP, TCP_NODELAY, 1);  # Disable Nagle
+                $conn_socket->setsockopt(SOL_SOCKET, SO_SNDBUF, pack('I', 256 * 1024));  # 256KB send buffer
+                $conn_socket->setsockopt(IPPROTO_TCP, TCP_NODELAY, pack('I', 1));  # Disable Nagle
             }
         };
         warn "Connection optimization warning: $@" if $@ && $debug;
