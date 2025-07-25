@@ -1401,13 +1401,8 @@ EOT
             warn "Connection handling error: $@" if $debug >= 2;
         }
         
-        # Always close the connection, even if there were errors
-        eval { 
-            $connection->close; 
-            undef $connection;  # Explicit cleanup
-        };
-        if ($@) {
-            warn "Error closing connection: $@";
-        }
+        # Mark connection as finished, let OS handle socket closure
+        # Don't wait for connection close to avoid hanging the server
+        undef $connection;  # Let garbage collector handle cleanup
     }
 }
