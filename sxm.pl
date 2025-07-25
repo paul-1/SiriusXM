@@ -15,6 +15,8 @@ use DateTime::TimeZone;
 use Data::Dumper;
 use HTTP::Cookies;
 use Time::HiRes qw(time);
+use Socket qw(SO_SNDBUF SO_RCVBUF IPPROTO_TCP TCP_NODELAY);
+use URI;
 
 # Define HTTP status codes directly
 use constant {
@@ -154,6 +156,13 @@ sub is_session_authenticated {
     my $cookies = $self->{ua}->cookie_jar->as_string;
     $self->debug("Cookie jar: $cookies", 3); # Changed to level 3
     return ($cookies =~ /AWSALB=/ && $cookies =~ /JSESSIONID=/);
+}
+
+sub clear_playlist_cache {
+    my ($self, $reason) = @_;
+    $reason = $reason || "unknown";
+    $self->debug("Clearing playlist cache due to: $reason");
+    $self->{playlists} = {};
 }
 
 sub should_refresh_authentication {
@@ -415,6 +424,9 @@ sub authenticate {
         $self->{last_auth_time} = time();
         $self->{segment_errors} = 0;
         
+        # Clear playlist cache since we have new authentication
+        $self->clear_playlist_cache("reauthentication");
+        
         if ($self->is_session_authenticated) {
             $self->log("Authentication successful");
             return 1;
@@ -523,6 +535,7 @@ sub get_playlist_url {
     $use_cache = defined $use_cache ? $use_cache : 1;
     $max_attempts = defined $max_attempts ? $max_attempts : 5;
     
+    # Enhanced caching: check if we have a valid cached URL for this channel
     if ($use_cache && exists $self->{playlists}{$channel_id}) {
         $self->debug("Using cached playlist URL for channel $channel_id", 2);
         return $self->{playlists}{$channel_id};
@@ -561,7 +574,8 @@ sub get_playlist_url {
     
     if ($message_code == 201 || $message_code == 208) {
         if ($max_attempts > 0) {
-            $self->log('Session expired, logging in and authenticating');
+            $self->log('Session expired, clearing cache and reauthenticating');
+            $self->clear_playlist_cache("session expired");
             if ($self->authenticate) {
                 $self->log('Successfully authenticated');
                 return $self->get_playlist_url($guid, $channel_id, $use_cache, $max_attempts - 1);
@@ -754,7 +768,8 @@ sub get_playlist_variant_url {
     
     if ($response->code == HTTP_FORBIDDEN) {
         if ($max_attempts > 0) {
-            $self->log("Received 403 on variant URL, re-authenticating and trying again");
+            $self->log("Received 403 on variant URL, clearing cache and re-authenticating");
+            $self->clear_playlist_cache("403 on variant URL");
             $self->authenticate();
             return $self->get_playlist_variant_url($url, $channel_id, $max_attempts - 1);
         } else {
@@ -955,8 +970,9 @@ sub get_playlist {
     $self->debug(sprintf("Got playlist in %.2f seconds with status %d", $elapsed, $response->code));
     
     if ($response->code == HTTP_FORBIDDEN) {
-        $self->log('Received status code 403 on playlist, renewing session');
-        # Match Python behavior: recursive call with use_cache=false
+        $self->log('Received status code 403 on playlist, clearing cache and renewing session');
+        # Clear cache and force reauthentication instead of just bypassing cache
+        $self->clear_playlist_cache("403 error");
         return $self->get_playlist($name, 0);
     }
     
@@ -1232,7 +1248,7 @@ if ($list) {
         printf "%s | %s | %s\n", $cid, $cnum, $cname;
     }
 } else {
-    # Create HTTP server
+    # Create HTTP server with enhanced socket options for better streaming
     my $HLS_AES_KEY = decode_base64('0Nsco7MAgxowGvkUT8aYag==');
     my $daemon = HTTP::Daemon->new(
         LocalAddr => '0.0.0.0',
@@ -1240,6 +1256,19 @@ if ($list) {
         ReuseAddr => 1,
         Timeout => 5,  # Reduced timeout for faster connection handling
     ) or die "Cannot create HTTP daemon: $!";
+    
+    # Optimize socket for streaming performance
+    my $socket = $daemon->socket;
+    if ($socket) {
+        eval {
+            # Increase socket buffer sizes to reduce blocking
+            $socket->sockopt(SO_SNDBUF, 256 * 1024);  # 256KB send buffer
+            $socket->sockopt(SO_RCVBUF, 64 * 1024);   # 64KB receive buffer
+            # Enable TCP_NODELAY for immediate sending
+            $socket->sockopt(IPPROTO_TCP, TCP_NODELAY, 1);
+        };
+        warn "Socket optimization warning: $@" if $@ && $debug;
+    }
     
     print "Server started at http://localhost:$port/\n";
     print "Press Ctrl+C to exit\n";
@@ -1263,8 +1292,17 @@ if ($list) {
         # Skip if no connection (timeout or error)
         next unless $connection;
         
-        # Set shorter timeout for connections
-        eval { $connection->timeout(15); };  # 15 second timeout per connection
+        # Optimize individual connection for streaming performance
+        eval {
+            $connection->timeout(15);  # 15 second timeout per connection
+            # Set socket options for better streaming performance
+            my $conn_socket = $connection->socket;
+            if ($conn_socket) {
+                $conn_socket->sockopt(SO_SNDBUF, 256 * 1024);  # 256KB send buffer
+                $conn_socket->sockopt(IPPROTO_TCP, TCP_NODELAY, 1);  # Disable Nagle
+            }
+        };
+        warn "Connection optimization warning: $@" if $@ && $debug;
         
         # Handle requests from this connection with improved error handling
         eval {
@@ -1309,12 +1347,15 @@ if ($list) {
                             my $response = HTTP::Response->new(HTTP_OK);
                             $response->header('Content-Type' => 'application/x-mpegURL');
                             $response->header('Cache-Control' => 'no-cache');
+                            # Add content length for better streaming
+                            $response->header('Content-Length' => length($data));
                             $response->content($data);
                             
-                            # Safe response sending with error handling
+                            # Optimized response sending with reduced blocking
                             eval { 
-                                $connection->send_response($response); 
-                                $connection->flush() if $connection->can('flush');
+                                # Send response without waiting for completion
+                                $connection->send_response($response);
+                                # Don't force flush - let the OS handle buffering
                             };
                             if ($@) {
                                 warn "Client disconnected during playlist send: $@" if $debug;
@@ -1332,12 +1373,15 @@ if ($list) {
                             my $response = HTTP::Response->new(HTTP_OK);
                             $response->header('Content-Type' => 'audio/x-aac');
                             $response->header('Cache-Control' => 'no-cache');
+                            # Add content length for better streaming performance
+                            $response->header('Content-Length' => length($data));
                             $response->content($data);
                             
-                            # Safe response sending with disconnection handling
+                            # Optimized response sending with reduced blocking
                             eval { 
+                                # Send response headers and data without forced flushing
                                 $connection->send_response($response);
-                                $connection->flush() if $connection->can('flush');
+                                # Let OS handle buffering for better performance
                             };
                             if ($@) {
                                 # Client disconnected during segment transfer - this is normal
